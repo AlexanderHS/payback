@@ -1,0 +1,43 @@
+services:
+  web:
+    build: .
+    container_name: payback
+    restart: unless-stopped
+    mem_limit: 128m
+    ports:
+      - "127.0.0.1:${SERVICE_PORT:-8104}:5000"
+    environment:
+      - TZ=Australia/Melbourne
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ./instance:/app/instance
+    network_mode: bridge
+    logging:
+      driver: json-file
+      options:
+        max-size: 5m
+        max-file: "2"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  oauth2-proxy:
+    image: quay.io/oauth2-proxy/oauth2-proxy:v7.6.0
+    container_name: payback-oauth2-proxy
+    restart: unless-stopped
+    mem_limit: 64m
+    environment:
+      - TZ=Australia/Melbourne
+    volumes:
+      - ./oauth2-proxy.cfg:/etc/oauth2-proxy/oauth2-proxy.cfg:ro
+      - ./allowed-emails.txt:/etc/oauth2-proxy/allowed-emails.txt:ro
+    command: --config=/etc/oauth2-proxy/oauth2-proxy.cfg
+    network_mode: host
+    logging:
+      driver: json-file
+      options:
+        max-size: 5m
+        max-file: "2"

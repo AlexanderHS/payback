@@ -1,0 +1,330 @@
+{% extends "base.html" %}
+{% block title_extra %} - Docs{% endblock %}
+{% block content %}
+<div class="docs">
+    <h1>Payback &mdash; Project ranking by payback period</h1>
+
+    <p class="subtitle">
+        A project list where every entry is forced into a target, a strategy, an alternatives section, costs, and
+        benefits, then ranked by payback period in months. The discipline of filling in those fields is most of the
+        value; the ranking is the visible mechanism that makes you do it.
+    </p>
+
+    <nav class="docs-nav">
+        <a href="#concept">Concept</a>
+        <a href="#fields">Project fields</a>
+        <a href="#hourly-rate">Hourly rate</a>
+        <a href="#techniques">Techniques</a>
+        <a href="#examples">Worked examples</a>
+        <a href="#api">API</a>
+        <a href="#amounts">Amounts &amp; units</a>
+        <a href="#agents">For LLM agents</a>
+    </nav>
+
+    <!-- CONCEPT -->
+    <section id="concept">
+        <h2>Concept</h2>
+        <p>
+            A project is a bounded piece of work or spending you're considering doing. Every project has costs and
+            benefits, expressed as line items in dollars or hours. Payback period (PBP) is computed as
+            <code>upfront_cost / (monthly_benefit &minus; monthly_recurring_cost)</code>. Lower is better. Active
+            projects are sorted shortest-payback first.
+        </p>
+        <p>
+            The math is simple on purpose. The hard part is being honest about what counts as a benefit, and
+            articulating <em>how</em> you'll execute the work and <em>what else</em> you considered. Those four text
+            fields &mdash; target, strategy, pros &amp; cons, alternatives &mdash; are where the thinking lives.
+        </p>
+        <p>
+            Projects must be <strong>bounded</strong>. Every entry needs a definitive endpoint &mdash; a quantity, a
+            time cap, or a verifiable condition that says "we are done." Open-ended commitments don't fit and
+            shouldn't be in the list. "Get into horse riding" is not bounded; "6 months of weekly lessons, then
+            reassess" is.
+        </p>
+    </section>
+
+    <!-- FIELDS -->
+    <section id="fields">
+        <h2>Project fields</h2>
+
+        <p>The text fields fall into two groups that answer two different questions.</p>
+
+        <h3>"How will we do this, and is this the best way?"</h3>
+        <table class="docs-table">
+            <thead><tr><th>Field</th><th>Purpose</th></tr></thead>
+            <tbody>
+                <tr>
+                    <td><code>target</code></td>
+                    <td>Bounded definition of done. When exactly is this finished? Specific and verifiable, not aspirational. "Bike purchased and ridden 3 times" beats "get healthier".</td>
+                </tr>
+                <tr>
+                    <td><code>strategy</code></td>
+                    <td>The concrete approach you're choosing. A step-by-step sketch of <em>the chosen path</em>, not every possible path.</td>
+                </tr>
+                <tr>
+                    <td><code>pros_cons</code></td>
+                    <td>What's good and bad <em>specifically about that strategy</em>. Not the project in general &mdash; the trade-offs of this approach.</td>
+                </tr>
+                <tr>
+                    <td><code>alternatives</code></td>
+                    <td>Other concrete strategies considered and why you didn't pick them. Ideally addresses some of the cons above. This is where you show you didn't grab the first option that came to mind.</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>"Is it worth it?"</h3>
+        <table class="docs-table">
+            <thead><tr><th>Field</th><th>Purpose</th></tr></thead>
+            <tbody>
+                <tr>
+                    <td><code>benefits</code></td>
+                    <td>Array of line items: <code>{description, amount, unit}</code>. Spell out <em>how the number was derived</em>, not just the number. "15% of $950k freight spend = $142.5k/yr" beats "freight savings".</td>
+                </tr>
+                <tr>
+                    <td><code>costs</code></td>
+                    <td>Same shape as benefits. Include money out, hours in, recurring expenses, probability-weighted risks. Cost convention &mdash; remaining work only: as a project gets closer to done, update the cost down so PBP reflects how cheap the last mile is.</td>
+                </tr>
+                <tr>
+                    <td><code>notes</code></td>
+                    <td>Anything that doesn't fit the other fields but future-you will thank present-you for: basis for estimates, unknowns, decision history, links to related material.</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>Metadata</h3>
+        <table class="docs-table">
+            <thead><tr><th>Field</th><th>Type</th><th>Notes</th></tr></thead>
+            <tbody>
+                <tr><td><code>name</code></td><td>string</td><td>Required. Describe the project, not its lifecycle phase.</td></tr>
+                <tr><td><code>pbp_override</code></td><td>number|null</td><td>Manual PBP months. Use when the auto-calc doesn't capture reality (ramped benefits, non-monetary intuition you trust). null = auto-calc.</td></tr>
+                <tr><td><code>status</code></td><td>string</td><td><code>active</code> | <code>done</code> | <code>dropped</code> | <code>archived</code>. Soft delete sets to <code>archived</code>; permanent delete requires a project to be archived first.</td></tr>
+            </tbody>
+        </table>
+    </section>
+
+    <!-- HOURLY RATE -->
+    <section id="hourly-rate">
+        <h2>Hourly rate</h2>
+        <p>
+            Set it once on the <a href="{{ url_for('settings') }}">Settings</a> page. Time-based line items
+            (<code>hours</code> and <code>hours_pcm</code> units) are multiplied by this rate before going into the
+            payback math. If the rate is <code>0</code>, time costs nothing in dollar terms but hours still appear on
+            cards.
+        </p>
+        <p>
+            Use your <strong>marginal earn rate</strong> &mdash; the rate at which you'd genuinely take on one more
+            hour of paid work right now. Not gross salary &divide; 2,000. Not your aspirational consulting rate.
+            The honest opportunity cost of an hour you would otherwise spend on something else.
+        </p>
+    </section>
+
+    <!-- TECHNIQUES -->
+    <section id="techniques">
+        <h2>Techniques</h2>
+
+        <h3>Willingness to pay (WTP) for non-monetary benefits</h3>
+        <p>
+            Many useful projects don't have direct cash returns &mdash; a hobby, a wardrobe upgrade, a holiday. To
+            keep them in the same ranking, price the benefit in dollars by stating what you'd actually pay for it.
+            "I would pay $10,000/year to do this" is a real, falsifiable number; if you can't bring yourself to
+            write it, that itself tells you something. Enter it as a benefit line item with unit <code>$/yr</code>
+            or <code>$/mo</code> and a description that names it as WTP.
+        </p>
+
+        <h3>Risk-adjusted avoided cost (contingency items)</h3>
+        <p>
+            For preparedness purchases &mdash; stockpiling food, buying a jumpstarter for the car &mdash; the benefit
+            is the avoided scramble cost weighted by how likely it is to bite. Compute
+            <code>P(event) &times; avoided_cost + security_premium</code> and put that figure in the amount. Show
+            your working in the description. Example: a $50 jumpstarter against a 5%/yr battery failure that would
+            otherwise cost $300 in callout fees = expected value of $15/yr; add a security premium if you'd pay
+            extra just not to be stranded.
+        </p>
+
+        <h3>Bounded targets</h3>
+        <p>
+            Every project must have an endpoint. For finite work that's natural ("ship the website",
+            "complete the renovation"). For open-ended interests, bound them with a checkpoint: "6 months of
+            weekly lessons, reassess." When the checkpoint hits, you decide whether to continue (a new project)
+            or drop. This forces hobbies to face the same scrutiny as everything else.
+        </p>
+
+        <h3>Cost = remaining work</h3>
+        <p>
+            Costs in active projects represent the work <em>still ahead</em>, not the original total. As a project
+            nears completion, the cost should drop and the PBP should shorten, lifting near-done items to the top.
+            This is correct: finishing something 90% complete is almost always higher-leverage than starting
+            something new. There's no enforcement here &mdash; update costs at natural checkpoints (when you open
+            the project to edit something else, when a phase boundary hits).
+        </p>
+    </section>
+
+    <!-- EXAMPLES -->
+    <section id="examples">
+        <h2>Worked examples</h2>
+
+        <h3>Direct-financial: power-monitoring rollout</h3>
+        <p>
+            Hardware $15k once + dev time $25k once. Energy savings $12k/month. Upfront $40k, monthly net $12k,
+            PBP &asymp; 3.3mo &mdash; ranks high.
+        </p>
+
+        <h3>Time-saver: home server upgrade</h3>
+        <p>
+            Hardware $800 once + 6h install. Saves 30 minutes per week of waiting for slow disk. At a $80/hr rate,
+            time cost is $480 + benefit is ~$10/wk &asymp; $43/mo. Upfront ~$1,280, monthly $43 &mdash; PBP &asymp;
+            29mo. Middling. Honest math reveals "I should do this" was driven by enthusiasm, not return.
+        </p>
+
+        <h3>Pure consumption: nice bicycle</h3>
+        <p>
+            $3k once. Benefit (WTP): "I'd pay $1,200/yr for the enjoyment of having a nice bike" &rarr; $100/mo.
+            PBP &asymp; 30mo. Reasonable; ranks below higher-yield projects but above worse ones.
+        </p>
+
+        <h3>Open-ended hobby, bounded: horse riding</h3>
+        <p>
+            Target: <em>"6 months of weekly lessons, then reassess."</em> Cost: 24 lessons &times; $200 = $4,800
+            once + travel time 24h &times; $80 = $1,920. Benefit (WTP): "I'd pay $10,000/yr to do this regularly"
+            &rarr; $833/mo. Upfront $6,720, monthly net $833. PBP &asymp; 8mo &mdash; passes the bar; revisit at
+            month 6.
+        </p>
+
+        <h3>Contingency prep: stocked freezer</h3>
+        <p>
+            8h cooking + $200 groceries. P(supply disruption in next 3mo) = 15%, avoided scramble cost $1,000
+            &rarr; expected $150 + security premium $200 = $350 benefit. Cost: $200 + 8h &times; $80 = $840. PBP =
+            &infin; (one-off cost, no recurring benefit). Use <code>pbp_override</code> if you want it ranked
+            against other items.
+        </p>
+
+        <h3>Default-bad: undirected weekend</h3>
+        <p>
+            16h scrolling. At $80/hr, cost $1,280. WTP for the activity itself: roughly $0 &mdash; you wouldn't pay
+            to scroll. PBP = &infin;. Adding this as a project surfaces what an undirected default actually costs;
+            seeing it ranked dead last is the point.
+        </p>
+    </section>
+
+    <!-- API -->
+    <section id="api">
+        <h2>API</h2>
+        <p>All API routes require an API key. Generate one from <a href="{{ url_for('manage_keys') }}">API Keys</a>.</p>
+        <p>Pass it as <code>Authorization: Bearer YOUR_KEY</code> or <code>X-API-Key: YOUR_KEY</code>.</p>
+
+        <h3>List projects</h3>
+        <pre><code>GET /api/projects                  # active by default
+GET /api/projects?status=done
+GET /api/projects?status=dropped
+GET /api/projects?status=archived
+GET /api/projects?status=all
+GET /api/projects?format=csv       # CSV export</code></pre>
+
+        <h3>Highest-priority active project</h3>
+        <pre><code>GET /api/projects/next</code></pre>
+
+        <h3>Single project</h3>
+        <pre><code>GET /api/projects/:id</code></pre>
+
+        <h3>Create</h3>
+        <p>Only <code>name</code> is required.</p>
+        <pre><code>POST /api/projects
+Content-Type: application/json
+
+{
+  "name": "Wardrobe refresh",
+  "target": "5 new outfits owned and worn within 6 weeks",
+  "strategy": "one focused weekend, 2 stores chosen in advance",
+  "pros_cons": "fast vs risk of overbuying; trying things on is unpleasant",
+  "alternatives": "incremental online ordering with returns; do nothing",
+  "costs": [
+    {"description": "clothing budget", "amount": "1k", "unit": "once"},
+    {"description": "shopping time", "amount": "8", "unit": "hours"}
+  ],
+  "benefits": [
+    {"description": "WTP: feeling well-presented at work", "amount": "1.2k", "unit": "py"}
+  ],
+  "notes": "set a hard cap; leave if nothing fits in 2 hours"
+}</code></pre>
+
+        <h3>Update</h3>
+        <p>
+            <code>PUT</code> and <code>PATCH</code> behave identically: only fields included are updated. If you
+            include <code>costs</code> or <code>benefits</code>, that array is replaced wholesale; if you omit it,
+            existing line items are preserved. They update independently &mdash; sending only <code>costs</code>
+            leaves <code>benefits</code> untouched.
+        </p>
+        <pre><code>PATCH /api/projects/:id
+{"strategy": "revised: pick stores on the way home Friday, shop Saturday morning"}
+
+PATCH /api/projects/:id
+{"pbp_override": 5.0}        # set manual PBP
+
+PATCH /api/projects/:id
+{"pbp_override": null}       # clear, return to auto-calc</code></pre>
+
+        <h3>Status</h3>
+        <pre><code>PATCH /api/projects/:id/status
+{"status": "done"}                 # or active | dropped | archived</code></pre>
+
+        <h3>Delete</h3>
+        <p>By default <code>DELETE</code> archives (soft). Pass <code>?hard=true</code> to permanently delete &mdash;
+        the project must already be archived, otherwise returns 409.</p>
+        <pre><code>DELETE /api/projects/:id
+DELETE /api/projects/:id?hard=true</code></pre>
+    </section>
+
+    <!-- AMOUNTS -->
+    <section id="amounts">
+        <h2>Amounts &amp; units</h2>
+        <p>Amounts can be strings or numbers. Strings accept <code>$</code> and <code>k</code>:</p>
+        <table class="docs-table">
+            <thead><tr><th>Input</th><th>Parsed as</th></tr></thead>
+            <tbody>
+                <tr><td><code>"200"</code></td><td>$200</td></tr>
+                <tr><td><code>"4.5k"</code></td><td>$4,500</td></tr>
+                <tr><td><code>"$1k"</code></td><td>$1,000</td></tr>
+                <tr><td><code>15000</code></td><td>$15,000</td></tr>
+            </tbody>
+        </table>
+
+        <p>Each line item has a <code>unit</code>:</p>
+        <table class="docs-table">
+            <thead><tr><th>Unit</th><th>Meaning</th><th>PBP role</th></tr></thead>
+            <tbody>
+                <tr><td><code>once</code></td><td>One-off dollars</td><td>Costs add to upfront. Benefits offset upfront.</td></tr>
+                <tr><td><code>pcm</code></td><td>Dollars per month</td><td>Adds directly to monthly totals.</td></tr>
+                <tr><td><code>py</code></td><td>Dollars per year</td><td>Divided by 12 for monthly totals.</td></tr>
+                <tr><td><code>hours</code></td><td>One-off hours</td><td>Multiplied by hourly rate, added to upfront.</td></tr>
+                <tr><td><code>hours_pcm</code></td><td>Hours per month</td><td>Multiplied by hourly rate, added to monthly.</td></tr>
+            </tbody>
+        </table>
+    </section>
+
+    <!-- AGENTS -->
+    <section id="agents">
+        <h2>For LLM agents</h2>
+        <p>
+            If you are an agent helping a user populate this tool, the goal is not just to fill in fields. The goal
+            is to push the user toward the kind of articulation that, when written down, makes the decision
+            obvious or surfaces a flaw. Concretely:
+        </p>
+        <ul>
+            <li>Insist on a <strong>bounded target</strong>. If the user offers an open-ended one, propose a
+                checkpoint (3 months, 6 months, a quantity) and let them adjust.</li>
+            <li>For non-monetary benefits, drive toward an <strong>explicit WTP figure</strong>. The number itself
+                is less important than the act of stating it; it's self-policing.</li>
+            <li>Push on <strong>alternatives</strong>. The first idea is rarely the best; if the user only has one,
+                ask "what else did you consider?" and capture the rejected paths.</li>
+            <li>Encourage the <strong>remaining-work cost convention</strong> when editing existing projects.</li>
+            <li>For contingency-style items, ask for the <strong>probability and avoided cost</strong> separately
+                so the math is visible in the description, not buried in a single number.</li>
+        </ul>
+        <p>
+            The tool is unopinionated about domain. Work projects, personal purchases, hobbies, contingency prep,
+            and default-bad activities (so they can be visibly ranked low) all belong on the same list when their
+            costs and benefits are honestly stated.
+        </p>
+    </section>
+</div>
+{% endblock %}

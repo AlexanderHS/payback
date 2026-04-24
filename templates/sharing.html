@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title_extra %} - Sharing{% endblock %}
+{% block content %}
+<div class="form-container">
+    <h1>Sharing</h1>
+    <p class="subtitle">Grant others read-only access to your projects.</p>
+
+    <form method="POST" class="key-form">
+        <input type="hidden" name="action" value="add">
+        <div class="form-row">
+            <input type="text" name="email" placeholder="Email or username (e.g. rebecca)" class="wide">
+            <button type="submit" class="btn btn-primary">Share</button>
+        </div>
+    </form>
+
+    {% if grants %}
+    <h2>People who can see your projects</h2>
+    <table class="keys-table">
+        <thead>
+            <tr>
+                <th>User</th>
+                <th>Since</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for g in grants %}
+            <tr>
+                <td>{{ g.viewer_id }}</td>
+                <td>{{ g.created_at }}</td>
+                <td>
+                    <form method="POST" class="inline-form">
+                        <input type="hidden" name="action" value="remove">
+                        <input type="hidden" name="share_id" value="{{ g.id }}">
+                        <button type="submit" class="btn btn-danger btn-small">Revoke</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="empty-state">You haven't shared with anyone yet.</p>
+    {% endif %}
+
+    {% if shared_from %}
+    <h2>Projects shared with you</h2>
+    <table class="keys-table">
+        <thead>
+            <tr>
+                <th>Owner</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for owner in shared_from %}
+            <tr>
+                <td>{{ owner }}</td>
+                <td><a href="{{ url_for('dashboard', view_as=owner) }}" class="btn btn-secondary btn-small">View</a></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+</div>
+{% endblock %}

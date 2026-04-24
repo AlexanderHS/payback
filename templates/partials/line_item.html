@@ -1,0 +1,12 @@
+<div class="line-item-row">
+    <input type="text" name="{{ type }}_desc_{{ index }}" placeholder="Description">
+    <input type="text" name="{{ type }}_amount_{{ index }}" placeholder="Amount" class="amount-input">
+    <select name="{{ type }}_unit_{{ index }}">
+        <option value="once">$ one-off</option>
+        <option value="pcm">$ per month</option>
+        <option value="py">$ per year</option>
+        <option value="hours">Hours one-off</option>
+        <option value="hours_pcm">Hours per month</option>
+    </select>
+    <button type="button" class="btn-remove" onclick="this.parentElement.remove(); reindexRows('{{ type }}')">x</button>
+</div>

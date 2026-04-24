@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title_extra %} - API Keys{% endblock %}
+{% block content %}
+<div class="form-container">
+    <h1>API Keys</h1>
+    <p class="subtitle">Use API keys to access Payback from scripts or LLM agents.</p>
+
+    {% if new_key %}
+    <div class="alert alert-success">
+        <strong>New key created.</strong> Copy it now - it won't be shown again.
+        <code class="key-display">{{ new_key }}</code>
+    </div>
+    {% endif %}
+
+    <form method="POST" class="key-form">
+        <input type="hidden" name="action" value="create">
+        <div class="form-row">
+            <input type="text" name="label" placeholder="Label (e.g. claude-code)" class="wide">
+            <button type="submit" class="btn btn-primary">Generate Key</button>
+        </div>
+    </form>
+
+    {% if keys %}
+    <table class="keys-table">
+        <thead>
+            <tr>
+                <th>Label</th>
+                <th>Key</th>
+                <th>Created</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for k in keys %}
+            <tr>
+                <td>{{ k.label or 'default' }}</td>
+                <td><code>{{ k.key[:8] }}...{{ k.key[-4:] }}</code></td>
+                <td>{{ k.created_at }}</td>
+                <td>
+                    <form method="POST" class="inline-form">
+                        <input type="hidden" name="action" value="delete">
+                        <input type="hidden" name="key_id" value="{{ k.id }}">
+                        <button type="submit" class="btn btn-danger btn-small">Revoke</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="empty-state">No API keys yet.</p>
+    {% endif %}
+
+    <p class="subtitle" style="margin-top: 1.5rem;">See <a href="{{ url_for('docs') }}" style="color: var(--primary);">API Docs</a> for full usage, including partial updates, status changes, and CSV export.</p>
+</div>
+{% endblock %}

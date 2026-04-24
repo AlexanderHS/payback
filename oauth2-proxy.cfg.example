@@ -1,0 +1,27 @@
+http_address = "127.0.0.1:4181"
+upstreams = ["http://127.0.0.1:8104"]
+
+provider = "google"
+client_id = "REPLACE_WITH_GOOGLE_CLIENT_ID"
+client_secret = "REPLACE_WITH_GOOGLE_CLIENT_SECRET"
+redirect_url = "https://your.domain.example/oauth2/callback"
+scope = "openid email profile"
+
+# Generate with: openssl rand -base64 32 | tr -d '=+/' | cut -c1-32
+cookie_secret = "REPLACE_WITH_RANDOM_32_CHAR_STRING"
+cookie_secure = true
+cookie_name = "_payback_oauth2"
+
+# Use email file for access control. Leave email_domains = [] to require explicit entries.
+email_domains = []
+authenticated_emails_file = "/etc/oauth2-proxy/allowed-emails.txt"
+
+# Pass user identity to upstream
+set_xauthrequest = true
+pass_user_headers = true
+
+# Skip the "Sign in with Google" interstitial
+skip_provider_button = true
+
+# Silence noisy logs
+silence_ping_logging = true

@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+{% block title_extra %} - {{ "Edit" if project else "New" }} Project{% endblock %}
+{% block content %}
+<div class="form-container">
+    <h1>{{ "Edit" if project else "New" }} Project</h1>
+
+    <form method="POST" class="project-form">
+        <!-- (a) Name & Target -->
+        <fieldset>
+            <legend>Identity</legend>
+            <div class="form-group">
+                <label for="name">Project name <span class="required">*</span></label>
+                <input type="text" id="name" name="name" required
+                       value="{{ project.name if project else '' }}"
+                       placeholder="e.g. Wardrobe refresh">
+            </div>
+            <div class="form-group">
+                <label for="target">Target / endpoint <span class="hint">(a)</span></label>
+                <textarea id="target" name="target" rows="2"
+                          placeholder="Bounded — what's done and when (e.g. '6 months of weekly lessons, then reassess')">{{ project.target or '' if project else '' }}</textarea>
+            </div>
+        </fieldset>
+
+        <!-- (b) Strategy -->
+        <fieldset>
+            <legend>Strategy <span class="hint">(b)</span></legend>
+            <div class="form-group">
+                <textarea id="strategy" name="strategy" rows="3"
+                          placeholder="How will we get there?">{{ project.strategy or '' if project else '' }}</textarea>
+            </div>
+        </fieldset>
+
+        <!-- (c) Pros & Cons -->
+        <fieldset>
+            <legend>Pros &amp; Cons <span class="hint">(c)</span></legend>
+            <div class="form-group">
+                <textarea id="pros_cons" name="pros_cons" rows="3"
+                          placeholder="Good and bad about this strategy">{{ project.pros_cons or '' if project else '' }}</textarea>
+            </div>
+        </fieldset>
+
+        <!-- (d) Alternatives -->
+        <fieldset>
+            <legend>Alternatives <span class="hint">(d)</span></legend>
+            <div class="form-group">
+                <textarea id="alternatives" name="alternatives" rows="3"
+                          placeholder="What else could we do?">{{ project.alternatives or '' if project else '' }}</textarea>
+            </div>
+        </fieldset>
+
+        <!-- (e) Benefits -->
+        <fieldset>
+            <legend>Benefits <span class="hint">(e)</span></legend>
+            <p class="field-help">Amounts accept $ or k suffix (e.g. 4.5k = $4,500). Hours convert via your hourly rate.</p>
+            <div id="benefits-list">
+                {% if project and project.benefits %}
+                    {% for b in project.benefits %}
+                    <div class="line-item-row">
+                        <input type="text" name="benefit_desc_{{ loop.index0 }}" value="{{ b.description }}" placeholder="Description">
+                        <input type="text" name="benefit_amount_{{ loop.index0 }}" value="{{ b.amount }}" placeholder="Amount" class="amount-input">
+                        <select name="benefit_unit_{{ loop.index0 }}">
+                            <option value="once" {{ 'selected' if b.unit == 'once' }}>$ one-off</option>
+                            <option value="pcm" {{ 'selected' if b.unit == 'pcm' }}>$ per month</option>
+                            <option value="py" {{ 'selected' if b.unit == 'py' }}>$ per year</option>
+                            <option value="hours" {{ 'selected' if b.unit == 'hours' }}>Hours one-off</option>
+                            <option value="hours_pcm" {{ 'selected' if b.unit == 'hours_pcm' }}>Hours per month</option>
+                        </select>
+                        <button type="button" class="btn-remove" onclick="this.parentElement.remove(); reindexRows('benefit')">x</button>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="line-item-row">
+                        <input type="text" name="benefit_desc_0" placeholder="Description">
+                        <input type="text" name="benefit_amount_0" placeholder="Amount" class="amount-input">
+                        <select name="benefit_unit_0">
+                            <option value="once">$ one-off</option>
+                            <option value="pcm">$ per month</option>
+                            <option value="py">$ per year</option>
+                            <option value="hours">Hours one-off</option>
+                            <option value="hours_pcm">Hours per month</option>
+                        </select>
+                        <button type="button" class="btn-remove" onclick="this.parentElement.remove(); reindexRows('benefit')">x</button>
+                    </div>
+                {% endif %}
+            </div>
+            <button type="button" class="btn btn-small" onclick="addRow('benefit')">+ Add benefit</button>
+        </fieldset>
+
+        <!-- (f) Costs -->
+        <fieldset>
+            <legend>Costs <span class="hint">(f)</span></legend>
+            <div id="costs-list">
+                {% if project and project.costs %}
+                    {% for c in project.costs %}
+                    <div class="line-item-row">
+                        <input type="text" name="cost_desc_{{ loop.index0 }}" value="{{ c.description }}" placeholder="Description">
+                        <input type="text" name="cost_amount_{{ loop.index0 }}" value="{{ c.amount }}" placeholder="Amount" class="amount-input">
+                        <select name="cost_unit_{{ loop.index0 }}">
+                            <option value="once" {{ 'selected' if c.unit == 'once' }}>$ one-off</option>
+                            <option value="pcm" {{ 'selected' if c.unit == 'pcm' }}>$ per month</option>
+                            <option value="py" {{ 'selected' if c.unit == 'py' }}>$ per year</option>
+                            <option value="hours" {{ 'selected' if c.unit == 'hours' }}>Hours one-off</option>
+                            <option value="hours_pcm" {{ 'selected' if c.unit == 'hours_pcm' }}>Hours per month</option>
+                        </select>
+                        <button type="button" class="btn-remove" onclick="this.parentElement.remove(); reindexRows('cost')">x</button>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="line-item-row">
+                        <input type="text" name="cost_desc_0" placeholder="Description">
+                        <input type="text" name="cost_amount_0" placeholder="Amount" class="amount-input">
+                        <select name="cost_unit_0">
+                            <option value="once">$ one-off</option>
+                            <option value="pcm">$ per month</option>
+                            <option value="py">$ per year</option>
+                            <option value="hours">Hours one-off</option>
+                            <option value="hours_pcm">Hours per month</option>
+                        </select>
+                        <button type="button" class="btn-remove" onclick="this.parentElement.remove(); reindexRows('cost')">x</button>
+                    </div>
+                {% endif %}
+            </div>
+            <button type="button" class="btn btn-small" onclick="addRow('cost')">+ Add cost</button>
+        </fieldset>
+
+        <!-- (g) Override & Notes -->
+        <fieldset>
+            <legend>Value <span class="hint">(g)</span></legend>
+            <div class="form-group">
+                <label for="pbp_override">PBP override (months) <span class="hint">leave blank to auto-calculate</span></label>
+                <input type="number" id="pbp_override" name="pbp_override" step="0.1" min="0"
+                       value="{{ project.pbp_override if project and project.pbp_override is not none else '' }}"
+                       placeholder="Auto">
+            </div>
+            <div class="form-group">
+                <label for="notes">Notes</label>
+                <textarea id="notes" name="notes" rows="3"
+                          placeholder="Anything else">{{ project.notes or '' if project else '' }}</textarea>
+            </div>
+        </fieldset>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">{{ "Save" if project else "Create" }}</button>
+            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+
+<script>
+function addRow(type) {
+    const list = document.getElementById(type + 's-list');
+    const rows = list.querySelectorAll('.line-item-row');
+    const idx = rows.length;
+    const row = document.createElement('div');
+    row.className = 'line-item-row';
+    row.innerHTML = `
+        <input type="text" name="${type}_desc_${idx}" placeholder="Description">
+        <input type="text" name="${type}_amount_${idx}" placeholder="Amount" class="amount-input">
+        <select name="${type}_unit_${idx}">
+            <option value="once">$ one-off</option>
+            <option value="pcm">$ per month</option>
+            <option value="py">$ per year</option>
+            <option value="hours">Hours one-off</option>
+            <option value="hours_pcm">Hours per month</option>
+        </select>
+        <button type="button" class="btn-remove" onclick="this.parentElement.remove(); reindexRows('${type}')">x</button>
+    `;
+    list.appendChild(row);
+}
+
+function reindexRows(type) {
+    const list = document.getElementById(type + 's-list');
+    const rows = list.querySelectorAll('.line-item-row');
+    rows.forEach((row, idx) => {
+        const inputs = row.querySelectorAll('input, select');
+        inputs.forEach(input => {
+            const name = input.name.replace(/_\d+$/, '_' + idx);
+            input.name = name;
+        });
+    });
+}
+</script>
+{% endblock %}

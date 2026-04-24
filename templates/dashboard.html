@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="dashboard-header">
+    <div class="dashboard-title-row">
+        <h1>Projects</h1>
+        {% if viewable|length > 1 %}
+        <div class="view-switcher">
+            <label>Viewing:</label>
+            <select onchange="window.location.href='?view_as='+this.value+'&status={{ current_status }}'">
+                {% for v in viewable %}
+                <option value="{{ v }}" {{ 'selected' if v == view_as }}>{{ v }}{{ ' (you)' if v == user else '' }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        {% endif %}
+    </div>
+    <span class="subtitle">
+        Ranked by payback period
+        {% if hourly_rate and hourly_rate > 0 %} &middot; time costed at ${{ hourly_rate|int }}/hr{% endif %}
+        {% if readonly %} &mdash; read-only view of {{ view_as }}'s projects{% endif %}
+    </span>
+</div>
+
+<div class="status-tabs">
+    <a href="?status=active&view_as={{ view_as }}" class="tab {{ 'active' if current_status == 'active' }}">Active{% if counts.active %} <span class="tab-count">{{ counts.active }}</span>{% endif %}</a>
+    <a href="?status=done&view_as={{ view_as }}" class="tab {{ 'active' if current_status == 'done' }}">Done{% if counts.done %} <span class="tab-count">{{ counts.done }}</span>{% endif %}</a>
+    <a href="?status=dropped&view_as={{ view_as }}" class="tab {{ 'active' if current_status == 'dropped' }}">Dropped{% if counts.dropped %} <span class="tab-count">{{ counts.dropped }}</span>{% endif %}</a>
+    <a href="?status=archived&view_as={{ view_as }}" class="tab {{ 'active' if current_status == 'archived' }}">Archived{% if counts.archived %} <span class="tab-count">{{ counts.archived }}</span>{% endif %}</a>
+</div>
+
+{% if not projects %}
+<div class="empty-state">
+    {% if current_status == 'active' and not readonly %}
+    <p>No active projects.</p>
+    <a href="{{ url_for('new_project') }}" class="btn btn-primary">Add your first project</a>
+    {% else %}
+    <p>No {{ current_status }} projects.</p>
+    {% endif %}
+</div>
+{% endif %}
+
+<div class="card-grid">
+{% for p in projects %}
+<div class="card {{ p.status }}" id="project-{{ p.id }}">
+    <div class="card-header" onclick="this.parentElement.classList.toggle('expanded')">
+        <div class="card-title-row">
+            <h2 class="card-title">{{ p.name }}</h2>
+            {% if p.status != 'active' %}
+            <span class="status-badge status-{{ p.status }}">{{ p.status }}</span>
+            {% endif %}
+            <span class="rank-badge">#{{ loop.index }}</span>
+        </div>
+        <div class="card-metrics">
+            <div class="pbp-badge pbp-{{ 'green' if p.pbp_months is not none and p.pbp_months <= 3 else 'blue' if p.pbp_months is not none and p.pbp_months <= 6 else 'amber' if p.pbp_months is not none and p.pbp_months <= 12 else 'red' if p.pbp_months is not none else 'grey' }}">
+                {% if p.pbp_months is not none %}
+                    {{ p.pbp_months }}mo
+                {% else %}
+                    n/a
+                {% endif %}
+            </div>
+            <div class="metric">
+                <span class="metric-label">Upfront</span>
+                <span class="metric-value cost">{{ format_amount(p.upfront_cost) }}</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">Monthly benefit</span>
+                <span class="metric-value benefit">{{ format_amount(p.monthly_benefit) }}</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">Net/mo</span>
+                <span class="metric-value {{ 'benefit' if p.net_monthly > 0 else 'cost' }}">{{ format_amount(p.net_monthly) }}</span>
+            </div>
+        </div>
+        {% if p.upfront_hours_cost or p.monthly_hours_cost %}
+        <div class="card-time">
+            Time:
+            {% if p.upfront_hours_cost %}{{ p.upfront_hours_cost|round(1) }}h upfront{% endif %}
+            {% if p.upfront_hours_cost and p.monthly_hours_cost %} + {% endif %}
+            {% if p.monthly_hours_cost %}{{ p.monthly_hours_cost|round(1) }}h/mo{% endif %}
+        </div>
+        {% endif %}
+        {% if p.strategy %}
+        <p class="card-strategy">{{ p.strategy[:120] }}{% if p.strategy|length > 120 %}...{% endif %}</p>
+        {% endif %}
+    </div>
+
+    <div class="card-detail">
+        {% if p.target %}
+        <div class="detail-section">
+            <h3>Target</h3>
+            <p>{{ p.target }}</p>
+        </div>
+        {% endif %}
+
+        {% if p.strategy %}
+        <div class="detail-section">
+            <h3>Strategy</h3>
+            <p>{{ p.strategy }}</p>
+        </div>
+        {% endif %}
+
+        {% if p.pros_cons %}
+        <div class="detail-section">
+            <h3>Pros &amp; Cons</h3>
+            <p>{{ p.pros_cons }}</p>
+        </div>
+        {% endif %}
+
+        {% if p.alternatives %}
+        <div class="detail-section">
+            <h3>Alternatives</h3>
+            <p>{{ p.alternatives }}</p>
+        </div>
+        {% endif %}
+
+        {% if p.costs %}
+        <div class="detail-section">
+            <h3>Costs</h3>
+            <table class="line-items-table">
+                {% for c in p.costs %}
+                <tr>
+                    <td>{{ c.description }}</td>
+                    <td class="amount cost">{{ format_amount(c.amount) }}</td>
+                    <td class="unit">{{ format_unit(c.unit) }}</td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+        {% endif %}
+
+        {% if p.benefits %}
+        <div class="detail-section">
+            <h3>Benefits</h3>
+            <table class="line-items-table">
+                {% for b in p.benefits %}
+                <tr>
+                    <td>{{ b.description }}</td>
+                    <td class="amount benefit">{{ format_amount(b.amount) }}</td>
+                    <td class="unit">{{ format_unit(b.unit) }}</td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+        {% endif %}
+
+        {% if p.notes %}
+        <div class="detail-section">
+            <h3>Notes</h3>
+            <p>{{ p.notes }}</p>
+        </div>
+        {% endif %}
+
+        {% if not readonly %}
+        <div class="card-actions">
+            <a href="{{ url_for('edit_project', project_id=p.id) }}" class="btn btn-secondary btn-small">Edit</a>
+
+            {% if p.status == 'active' %}
+            <form method="POST" action="{{ url_for('change_status', project_id=p.id) }}" class="inline-form">
+                <input type="hidden" name="status" value="done">
+                <input type="hidden" name="return_status" value="{{ current_status }}">
+                <button type="submit" class="btn btn-done btn-small">Done</button>
+            </form>
+            <form method="POST" action="{{ url_for('change_status', project_id=p.id) }}" class="inline-form">
+                <input type="hidden" name="status" value="dropped">
+                <input type="hidden" name="return_status" value="{{ current_status }}">
+                <button type="submit" class="btn btn-dropped btn-small">Drop</button>
+            </form>
+            {% endif %}
+
+            {% if p.status != 'active' %}
+            <form method="POST" action="{{ url_for('change_status', project_id=p.id) }}" class="inline-form">
+                <input type="hidden" name="status" value="active">
+                <input type="hidden" name="return_status" value="{{ current_status }}">
+                <button type="submit" class="btn btn-primary btn-small">Restore</button>
+            </form>
+            {% endif %}
+
+            {% if p.status != 'archived' %}
+            <form method="POST" action="{{ url_for('delete_project_route', project_id=p.id) }}" class="inline-form">
+                <button type="submit" class="btn btn-danger btn-small">Archive</button>
+            </form>
+            {% else %}
+            <form method="POST" action="{{ url_for('purge_project_route', project_id=p.id) }}" class="inline-form"
+                  onsubmit='return prompt("Permanent delete. Type the project name exactly to confirm:\n\n" + {{ p.name|tojson }}) === {{ p.name|tojson }};'>
+                <button type="submit" class="btn btn-danger btn-small">Delete forever</button>
+            </form>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endfor %}
+</div>
+{% endblock %}

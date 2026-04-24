@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payback{% block title_extra %}{% endblock %}</title>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-inner">
+            <a href="{{ url_for('dashboard') }}" class="nav-brand">Payback</a>
+            <div class="nav-links">
+                <a href="{{ url_for('dashboard') }}">Dashboard</a>
+                <a href="{{ url_for('new_project') }}">+ New</a>
+                <a href="{{ url_for('sharing') }}">Sharing</a>
+                <a href="{{ url_for('settings') }}">Settings</a>
+                <a href="{{ url_for('manage_keys') }}">API Keys</a>
+                <a href="{{ url_for('docs') }}">Docs</a>
+                <span class="nav-user">{{ user }}</span>
+            </div>
+        </div>
+    </nav>
+    <div class="container">
+        {% block content %}{% endblock %}
+    </div>
+</body>
+</html>
