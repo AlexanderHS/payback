@@ -3,12 +3,19 @@
 {% block content %}
 <div class="form-container">
     <h1>Sharing</h1>
-    <p class="subtitle">Grant others read-only access to your projects.</p>
+    <p class="subtitle">
+        Grant another user read-only access to your projects. The email must match the address they sign in with via
+        Google — and must be in the deployment's allow-list, otherwise they can't reach the app at all.
+    </p>
+
+    {% if error %}
+    <p class="error-banner">{{ error }}</p>
+    {% endif %}
 
     <form method="POST" class="key-form">
         <input type="hidden" name="action" value="add">
         <div class="form-row">
-            <input type="text" name="email" placeholder="Email or username (e.g. rebecca)" class="wide">
+            <input type="email" name="email" placeholder="alex@example.com" class="wide" required>
             <button type="submit" class="btn btn-primary">Share</button>
         </div>
     </form>

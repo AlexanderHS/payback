@@ -25,3 +25,6 @@ skip_provider_button = true
 
 # Silence noisy logs
 silence_ping_logging = true
+
+# Bypass oauth2-proxy auth for /api/* — Flask handles Bearer-token auth itself
+skip_auth_routes = ["^/api/"]

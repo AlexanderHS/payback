@@ -609,3 +609,12 @@ input:focus, textarea:focus, select:focus {
     border-radius: 4px;
     margin-bottom: 1rem;
 }
+
+.error-banner {
+    background: #3a1f1f;
+    color: #ffcdd2;
+    border-left: 3px solid #e57373;
+    padding: 0.5rem 0.75rem;
+    border-radius: 4px;
+    margin-bottom: 1rem;
+}

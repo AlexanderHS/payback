@@ -1,5 +1,6 @@
 import csv
 import io
+import re
 from functools import wraps
 from flask import Flask, request, jsonify, render_template, redirect, url_for, Response
 from db import (
@@ -13,6 +14,8 @@ from db import (
 
 app = Flask(__name__)
 app.jinja_env.globals['format_amount'] = format_amount
+
+EMAIL_RE = re.compile(r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
 
 UNIT_LABELS = {
     'once': '$ one-off',
@@ -145,18 +148,24 @@ def purge_project_route(project_id):
 @app.route('/sharing', methods=['GET', 'POST'])
 def sharing():
     user_id = get_user()
+    error = None
     if request.method == 'POST':
         action = request.form.get('action')
         if action == 'add':
             viewer_id = request.form.get('email', '').strip().lower()
-            if viewer_id and viewer_id != user_id:
+            if not EMAIL_RE.match(viewer_id):
+                error = "Enter a full email address (e.g. alex@example.com). Usernames or partial values are rejected — sharing only works once that email logs in via Google, so it must match exactly."
+            elif viewer_id == user_id:
+                error = "That's your own account."
+            else:
                 add_share(user_id, viewer_id)
         elif action == 'remove':
             share_id = request.form.get('share_id')
             remove_share(share_id, user_id)
     grants = get_shares_granted(user_id)
     shared_from = get_shares_received(user_id)
-    return render_template('sharing.html', user=user_id, grants=grants, shared_from=shared_from)
+    return render_template('sharing.html', user=user_id, grants=grants,
+                           shared_from=shared_from, error=error)
 
 
 @app.route('/settings', methods=['GET', 'POST'])
