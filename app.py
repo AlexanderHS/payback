@@ -1,8 +1,14 @@
 import csv
 import io
+import os
 import re
+import hashlib
+import secrets
 from functools import wraps
 from flask import Flask, request, jsonify, render_template, redirect, url_for, Response
+from flask_wtf.csrf import CSRFProtect
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from db import (
     init_db, get_projects, get_project, create_project, update_project,
     delete_project, hard_delete_project, set_project_status, parse_amount, format_amount,
@@ -14,6 +20,24 @@ from db import (
 
 app = Flask(__name__)
 app.jinja_env.globals['format_amount'] = format_amount
+# SECRET_KEY must be stable across container restarts so CSRF tokens survive.
+# Set SECRET_KEY in /opt/payback/.env (mounted via docker-compose env_file).
+# Falls back to a fresh random one in dev if unset, which invalidates tokens on restart.
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY') or secrets.token_urlsafe(32)
+csrf = CSRFProtect(app)
+
+
+def _rate_limit_key():
+    """Bucket per presented API key (hashed so the raw value never lands in the
+    in-memory limiter store), or per remote IP if no key was sent."""
+    auth = request.headers.get('Authorization', '').removeprefix('Bearer ').strip()
+    key = auth or request.headers.get('X-API-Key', '').strip()
+    if key:
+        return 'k:' + hashlib.sha256(key.encode()).hexdigest()[:16]
+    return get_remote_address()
+
+
+limiter = Limiter(key_func=_rate_limit_key, app=app, storage_uri="memory://")
 
 EMAIL_RE = re.compile(r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
 
@@ -214,6 +238,8 @@ def line_item_partial():
 # --- API routes ---
 
 @app.route('/api/projects', methods=['GET'])
+@limiter.limit("60/minute")
+@csrf.exempt
 @api_auth_required
 def api_list_projects():
     status = request.args.get('status', 'active')
@@ -240,6 +266,8 @@ def api_list_projects():
 
 
 @app.route('/api/projects/next', methods=['GET'])
+@limiter.limit("60/minute")
+@csrf.exempt
 @api_auth_required
 def api_next_project():
     projects = get_projects(request.api_user)
@@ -249,6 +277,8 @@ def api_next_project():
 
 
 @app.route('/api/projects/<int:project_id>', methods=['GET'])
+@limiter.limit("60/minute")
+@csrf.exempt
 @api_auth_required
 def api_get_project(project_id):
     project = get_project(project_id)
@@ -258,36 +288,48 @@ def api_get_project(project_id):
 
 
 @app.route('/api/projects', methods=['POST'])
+@limiter.limit("60/minute")
+@csrf.exempt
 @api_auth_required
 def api_create_project():
-    data = request.get_json()
-    if not data or not data.get('name'):
-        return jsonify({"error": "name is required"}), 400
+    data = request.get_json(silent=True)
+    err = _validate_project_payload(data, require_name=True)
+    if err:
+        return jsonify({"error": err}), 400
     project_id = create_project(request.api_user, data)
     project = get_project(project_id)
     return jsonify({"project": sanitise_project(project)}), 201
 
 
 @app.route('/api/projects/<int:project_id>', methods=['PUT', 'PATCH'])
+@limiter.limit("60/minute")
+@csrf.exempt
 @api_auth_required
 def api_update_project(project_id):
     project = get_project(project_id)
     if not project or project['user_id'] != request.api_user:
         return jsonify({"error": "Not found"}), 404
-    data = request.get_json()
+    data = request.get_json(silent=True)
+    err = _validate_project_payload(data)
+    if err:
+        return jsonify({"error": err}), 400
     update_project(project_id, data)
     project = get_project(project_id)
     return jsonify({"project": sanitise_project(project)})
 
 
 @app.route('/api/projects/<int:project_id>/status', methods=['PUT', 'PATCH'])
+@limiter.limit("60/minute")
+@csrf.exempt
 @api_auth_required
 def api_set_status(project_id):
     project = get_project(project_id)
     if not project or project['user_id'] != request.api_user:
         return jsonify({"error": "Not found"}), 404
-    data = request.get_json()
-    new_status = data.get('status') if data else None
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({"error": "Body must be a JSON object"}), 400
+    new_status = data.get('status')
     if new_status not in VALID_STATUSES:
         return jsonify({"error": f"status must be one of: {', '.join(VALID_STATUSES)}"}), 400
     set_project_status(project_id, new_status)
@@ -296,6 +338,8 @@ def api_set_status(project_id):
 
 
 @app.route('/api/projects/<int:project_id>', methods=['DELETE'])
+@limiter.limit("60/minute")
+@csrf.exempt
 @api_auth_required
 def api_delete_project(project_id):
     project = get_project(project_id)
@@ -337,7 +381,10 @@ def parse_form(form):
     }
 
     pbp_override = form.get('pbp_override', '').strip()
-    data['pbp_override'] = float(pbp_override) if pbp_override else None
+    try:
+        data['pbp_override'] = float(pbp_override) if pbp_override else None
+    except ValueError:
+        data['pbp_override'] = None
 
     data['costs'] = []
     data['benefits'] = []
@@ -374,6 +421,49 @@ def parse_form(form):
         i += 1
 
     return data
+
+
+def _validate_items(items, kind):
+    """Return error string or None."""
+    if not isinstance(items, list):
+        return f"{kind} must be a list"
+    for i, item in enumerate(items):
+        if not isinstance(item, dict):
+            return f"{kind}[{i}] must be an object"
+        if item.get('unit') not in VALID_UNITS:
+            return f"{kind}[{i}].unit must be one of {list(VALID_UNITS)}"
+        if not isinstance(item.get('description'), str) or not item['description'].strip():
+            return f"{kind}[{i}].description is required"
+        try:
+            parse_amount(item.get('amount'))
+        except (ValueError, TypeError):
+            return f"{kind}[{i}].amount is not a valid number"
+    return None
+
+
+def _validate_project_payload(data, require_name=False):
+    """Return error string or None. require_name=True for create."""
+    if not isinstance(data, dict):
+        return "Body must be a JSON object"
+    if require_name:
+        if not isinstance(data.get('name'), str) or not data['name'].strip():
+            return "name is required"
+    if 'status' in data and data['status'] not in VALID_STATUSES:
+        return f"status must be one of {list(VALID_STATUSES)}"
+    if 'pbp_override' in data and data['pbp_override'] is not None:
+        try:
+            float(data['pbp_override'])
+        except (ValueError, TypeError):
+            return "pbp_override must be numeric or null"
+    if 'costs' in data:
+        err = _validate_items(data['costs'], 'costs')
+        if err:
+            return err
+    if 'benefits' in data:
+        err = _validate_items(data['benefits'], 'benefits')
+        if err:
+            return err
+    return None
 
 
 def sanitise_project(p):

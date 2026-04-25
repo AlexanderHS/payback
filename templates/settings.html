@@ -9,6 +9,7 @@
     {% endif %}
 
     <form method="POST" class="project-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <fieldset>
             <legend>Hourly rate</legend>
             <p class="field-help">

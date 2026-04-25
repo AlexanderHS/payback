@@ -13,6 +13,7 @@
     {% endif %}
 
     <form method="POST" class="key-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <input type="hidden" name="action" value="add">
         <div class="form-row">
             <input type="email" name="email" placeholder="alex@example.com" class="wide" required>
@@ -37,6 +38,7 @@
                 <td>{{ g.created_at }}</td>
                 <td>
                     <form method="POST" class="inline-form">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <input type="hidden" name="action" value="remove">
                         <input type="hidden" name="share_id" value="{{ g.id }}">
                         <button type="submit" class="btn btn-danger btn-small">Revoke</button>

@@ -9,6 +9,8 @@ services:
     environment:
       - TZ=Australia/Melbourne
       - PYTHONUNBUFFERED=1
+    env_file:
+      - .env
     volumes:
       - ./instance:/app/instance
     network_mode: bridge

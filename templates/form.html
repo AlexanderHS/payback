@@ -5,6 +5,7 @@
     <h1>{{ "Edit" if project else "New" }} Project</h1>
 
     <form method="POST" class="project-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <!-- (a) Name & Target -->
         <fieldset>
             <legend>Identity</legend>

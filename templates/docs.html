@@ -211,6 +211,7 @@
         <h2>API</h2>
         <p>All API routes require an API key. Generate one from <a href="{{ url_for('manage_keys') }}">API Keys</a>.</p>
         <p>Pass it as <code>Authorization: Bearer YOUR_KEY</code> or <code>X-API-Key: YOUR_KEY</code>.</p>
+        <p>Rate limit: <strong>60 requests per minute per key</strong>. Exceeding it returns <code>429 Too Many Requests</code> with a <code>Retry-After</code> header. Web routes are not rate-limited (Google OAuth gates them already).</p>
 
         <h3>List projects</h3>
         <pre><code>GET /api/projects                  # active by default

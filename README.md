@@ -22,7 +22,11 @@ Flask + SQLite + HTMX + waitress, all running in one ~128MB container behind an 
 ```sh
 cp oauth2-proxy.cfg.example oauth2-proxy.cfg
 cp allowed-emails.txt.example allowed-emails.txt
-# edit both: real Google OAuth client_id/secret, generated cookie_secret, your email(s)
+cp .env.example .env
+# edit:
+#   oauth2-proxy.cfg     real Google OAuth client_id/secret, cookie_secret
+#   allowed-emails.txt   one email per line
+#   .env                 SECRET_KEY (used for CSRF tokens; must be stable across restarts)
 
 docker compose up -d --build
 # app on 127.0.0.1:8104 (Flask), oauth2-proxy on 127.0.0.1:4181

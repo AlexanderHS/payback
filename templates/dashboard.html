@@ -156,11 +156,13 @@
 
             {% if p.status == 'active' %}
             <form method="POST" action="{{ url_for('change_status', project_id=p.id) }}" class="inline-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <input type="hidden" name="status" value="done">
                 <input type="hidden" name="return_status" value="{{ current_status }}">
                 <button type="submit" class="btn btn-done btn-small">Done</button>
             </form>
             <form method="POST" action="{{ url_for('change_status', project_id=p.id) }}" class="inline-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <input type="hidden" name="status" value="dropped">
                 <input type="hidden" name="return_status" value="{{ current_status }}">
                 <button type="submit" class="btn btn-dropped btn-small">Drop</button>
@@ -169,6 +171,7 @@
 
             {% if p.status != 'active' %}
             <form method="POST" action="{{ url_for('change_status', project_id=p.id) }}" class="inline-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <input type="hidden" name="status" value="active">
                 <input type="hidden" name="return_status" value="{{ current_status }}">
                 <button type="submit" class="btn btn-primary btn-small">Restore</button>
@@ -177,11 +180,13 @@
 
             {% if p.status != 'archived' %}
             <form method="POST" action="{{ url_for('delete_project_route', project_id=p.id) }}" class="inline-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button type="submit" class="btn btn-danger btn-small">Archive</button>
             </form>
             {% else %}
             <form method="POST" action="{{ url_for('purge_project_route', project_id=p.id) }}" class="inline-form"
                   onsubmit='return prompt("Permanent delete. Type the project name exactly to confirm:\n\n" + {{ p.name|tojson }}) === {{ p.name|tojson }};'>
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button type="submit" class="btn btn-danger btn-small">Delete forever</button>
             </form>
             {% endif %}
