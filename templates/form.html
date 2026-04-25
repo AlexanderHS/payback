@@ -4,6 +4,10 @@
 <div class="form-container">
     <h1>{{ "Edit" if project else "New" }} Project</h1>
 
+    {% if error %}
+    <p class="error-banner">{{ error }}</p>
+    {% endif %}
+
     <form method="POST" class="project-form">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <!-- (a) Name & Target -->
@@ -11,13 +15,13 @@
             <legend>Identity</legend>
             <div class="form-group">
                 <label for="name">Project name <span class="required">*</span></label>
-                <input type="text" id="name" name="name" required
+                <input type="text" id="name" name="name" required maxlength="200"
                        value="{{ project.name if project else '' }}"
                        placeholder="e.g. Wardrobe refresh">
             </div>
             <div class="form-group">
                 <label for="target">Target / endpoint <span class="hint">(a)</span></label>
-                <textarea id="target" name="target" rows="2"
+                <textarea id="target" name="target" rows="2" maxlength="5000"
                           placeholder="Bounded — what's done and when (e.g. '6 months of weekly lessons, then reassess')">{{ project.target or '' if project else '' }}</textarea>
             </div>
         </fieldset>
@@ -26,7 +30,7 @@
         <fieldset>
             <legend>Strategy <span class="hint">(b)</span></legend>
             <div class="form-group">
-                <textarea id="strategy" name="strategy" rows="3"
+                <textarea id="strategy" name="strategy" rows="3" maxlength="5000"
                           placeholder="How will we get there?">{{ project.strategy or '' if project else '' }}</textarea>
             </div>
         </fieldset>
@@ -35,7 +39,7 @@
         <fieldset>
             <legend>Pros &amp; Cons <span class="hint">(c)</span></legend>
             <div class="form-group">
-                <textarea id="pros_cons" name="pros_cons" rows="3"
+                <textarea id="pros_cons" name="pros_cons" rows="3" maxlength="5000"
                           placeholder="Good and bad about this strategy">{{ project.pros_cons or '' if project else '' }}</textarea>
             </div>
         </fieldset>
@@ -44,7 +48,7 @@
         <fieldset>
             <legend>Alternatives <span class="hint">(d)</span></legend>
             <div class="form-group">
-                <textarea id="alternatives" name="alternatives" rows="3"
+                <textarea id="alternatives" name="alternatives" rows="3" maxlength="5000"
                           placeholder="What else could we do?">{{ project.alternatives or '' if project else '' }}</textarea>
             </div>
         </fieldset>
@@ -135,7 +139,7 @@
             </div>
             <div class="form-group">
                 <label for="notes">Notes</label>
-                <textarea id="notes" name="notes" rows="3"
+                <textarea id="notes" name="notes" rows="3" maxlength="10000"
                           placeholder="Anything else">{{ project.notes or '' if project else '' }}</textarea>
             </div>
         </fieldset>

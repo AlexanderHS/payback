@@ -15,6 +15,7 @@ from db import (
     create_api_key, get_api_keys, verify_api_key, delete_api_key,
     add_share, remove_share, get_shares_granted, get_shares_received, can_view,
     get_hourly_rate, set_hourly_rate,
+    touch_user, get_analytics, ValidationError,
     VALID_STATUSES, VALID_UNITS,
 )
 
@@ -39,7 +40,28 @@ def _rate_limit_key():
 
 limiter = Limiter(key_func=_rate_limit_key, app=app, storage_uri="memory://")
 
+# Separate token, distinct from per-user API keys, for the analytics endpoint.
+# Set in /opt/payback/.env. Empty = endpoint refuses everything.
+ANALYTICS_TOKEN = os.environ.get('ANALYTICS_TOKEN', '')
+
 EMAIL_RE = re.compile(r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
+
+
+@app.before_request
+def _record_user():
+    """Touch the users table on every authenticated web request so we have a
+    real record of who's signed in. Skips API and static paths (no email
+    header on those) and /docs (public)."""
+    if request.path.startswith('/api/') or request.path.startswith('/static/'):
+        return
+    if request.path == '/docs':
+        return
+    email = request.headers.get('X-Forwarded-Email', '').strip().lower()
+    if email and '@' in email:
+        try:
+            touch_user(email)
+        except Exception:
+            pass  # never block a request because of analytics bookkeeping
 
 UNIT_LABELS = {
     'once': '$ one-off',
@@ -84,6 +106,19 @@ def api_auth_required(f):
     return decorated
 
 
+def analytics_auth_required(f):
+    """Decorator for the analytics endpoint. Token is a separate env var, not a per-user key."""
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        token = request.headers.get('Authorization', '').removeprefix('Bearer ').strip()
+        if not token:
+            token = request.headers.get('X-API-Key', '').strip()
+        if not ANALYTICS_TOKEN or not token or not secrets.compare_digest(token, ANALYTICS_TOKEN):
+            return jsonify({"error": "Valid analytics token required."}), 401
+        return f(*args, **kwargs)
+    return decorated
+
+
 # --- Web routes ---
 
 @app.route('/')
@@ -118,9 +153,12 @@ def new_project():
     user_id = get_user()
     if request.method == 'POST':
         data = parse_form(request.form)
-        create_project(user_id, data)
-        return redirect(url_for('dashboard'))
-    return render_template('form.html', project=None, user=user_id)
+        try:
+            create_project(user_id, data)
+            return redirect(url_for('dashboard'))
+        except ValidationError as e:
+            return render_template('form.html', project=data, user=user_id, error=str(e))
+    return render_template('form.html', project=None, user=user_id, error=None)
 
 
 @app.route('/edit/<int:project_id>', methods=['GET', 'POST'])
@@ -132,9 +170,15 @@ def edit_project(project_id):
 
     if request.method == 'POST':
         data = parse_form(request.form)
-        update_project(project_id, data)
-        return redirect(url_for('dashboard'))
-    return render_template('form.html', project=project, user=user_id)
+        try:
+            update_project(project_id, data)
+            return redirect(url_for('dashboard'))
+        except ValidationError as e:
+            # Re-render with the user's just-typed data merged onto the existing
+            # project so they don't lose work
+            project = {**dict(project), **data}
+            return render_template('form.html', project=project, user=user_id, error=str(e))
+    return render_template('form.html', project=project, user=user_id, error=None)
 
 
 @app.route('/status/<int:project_id>', methods=['POST'])
@@ -170,26 +214,33 @@ def purge_project_route(project_id):
 
 
 @app.route('/sharing', methods=['GET', 'POST'])
+@limiter.limit("10/minute", methods=['POST'])
 def sharing():
     user_id = get_user()
     error = None
+    notice = None
     if request.method == 'POST':
         action = request.form.get('action')
         if action == 'add':
             viewer_id = request.form.get('email', '').strip().lower()
             if not EMAIL_RE.match(viewer_id):
-                error = "Enter a full email address (e.g. alex@example.com). Usernames or partial values are rejected — sharing only works once that email logs in via Google, so it must match exactly."
+                error = "Enter a full email address (e.g. alex@example.com)."
             elif viewer_id == user_id:
                 error = "That's your own account."
             else:
+                # Persist regardless of whether viewer has an account.
+                # Constant response avoids leaking who is/isn't a Payback user.
                 add_share(user_id, viewer_id)
+                notice = (f"Share saved for {viewer_id}. They'll see your projects "
+                          "the next time they sign in to Payback (or right now, if "
+                          "they already have an account).")
         elif action == 'remove':
             share_id = request.form.get('share_id')
             remove_share(share_id, user_id)
     grants = get_shares_granted(user_id)
     shared_from = get_shares_received(user_id)
     return render_template('sharing.html', user=user_id, grants=grants,
-                           shared_from=shared_from, error=error)
+                           shared_from=shared_from, error=error, notice=notice)
 
 
 @app.route('/settings', methods=['GET', 'POST'])
@@ -296,7 +347,10 @@ def api_create_project():
     err = _validate_project_payload(data, require_name=True)
     if err:
         return jsonify({"error": err}), 400
-    project_id = create_project(request.api_user, data)
+    try:
+        project_id = create_project(request.api_user, data)
+    except ValidationError as e:
+        return jsonify({"error": str(e)}), 400
     project = get_project(project_id)
     return jsonify({"project": sanitise_project(project)}), 201
 
@@ -313,9 +367,20 @@ def api_update_project(project_id):
     err = _validate_project_payload(data)
     if err:
         return jsonify({"error": err}), 400
-    update_project(project_id, data)
+    try:
+        update_project(project_id, data)
+    except ValidationError as e:
+        return jsonify({"error": str(e)}), 400
     project = get_project(project_id)
     return jsonify({"project": sanitise_project(project)})
+
+
+@app.route('/api/analytics', methods=['GET'])
+@limiter.limit("60/minute")
+@csrf.exempt
+@analytics_auth_required
+def api_analytics():
+    return jsonify(get_analytics())
 
 
 @app.route('/api/projects/<int:project_id>/status', methods=['PUT', 'PATCH'])

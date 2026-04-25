@@ -21,16 +21,16 @@ Flask + SQLite + HTMX + waitress, all running in one ~128MB container behind an 
 
 ```sh
 cp oauth2-proxy.cfg.example oauth2-proxy.cfg
-cp allowed-emails.txt.example allowed-emails.txt
 cp .env.example .env
 # edit:
 #   oauth2-proxy.cfg     real Google OAuth client_id/secret, cookie_secret
-#   allowed-emails.txt   one email per line
-#   .env                 SECRET_KEY (used for CSRF tokens; must be stable across restarts)
+#   .env                 SECRET_KEY (CSRF tokens), ANALYTICS_TOKEN (admin endpoint)
 
 docker compose up -d --build
 # app on 127.0.0.1:8104 (Flask), oauth2-proxy on 127.0.0.1:4181
 ```
+
+By default any Google account can sign in. Each user only sees their own projects. To restrict to a specific list of emails, see the comments in `oauth2-proxy.cfg.example`.
 
 Put nginx (or any reverse proxy) in front of `127.0.0.1:4181` with TLS. The Flask container is not exposed publicly — all traffic must go through oauth2-proxy.
 
@@ -41,6 +41,15 @@ For local development without auth, just run `python app.py` and the app falls b
 - `SERVICE_PORT` env var sets the Flask container's host-side port (default `8104`)
 - `instance/payback.db` is the SQLite database — back it up
 - Hourly rate is per-user, set on the in-app `/settings` page
+- Per-user caps: max 1000 projects, ~5–10k chars per text field, 100 line items per type. See `db.py` for exact values.
+
+## Analytics
+
+`GET /api/analytics` returns aggregate, privacy-preserving stats (user counts, project counts, distribution buckets, storage size). No emails or project content. Authenticated by `ANALYTICS_TOKEN` (set in `.env`), separate from per-user API keys — there is no admin user tier in the app itself.
+
+```sh
+curl -H "Authorization: Bearer $ANALYTICS_TOKEN" https://your.domain/api/analytics
+```
 
 ## Lineage
 

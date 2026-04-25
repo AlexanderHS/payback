@@ -4,12 +4,15 @@
 <div class="form-container">
     <h1>Sharing</h1>
     <p class="subtitle">
-        Grant another user read-only access to your projects. The email must match the address they sign in with via
-        Google — and must be in the deployment's allow-list, otherwise they can't reach the app at all.
+        Grant another user read-only access to your projects. They'll see your projects the next time they
+        sign in to Payback. If they don't have an account yet, ask them to sign in once first.
     </p>
 
     {% if error %}
     <p class="error-banner">{{ error }}</p>
+    {% endif %}
+    {% if notice %}
+    <p class="saved-banner">{{ notice }}</p>
     {% endif %}
 
     <form method="POST" class="key-form">

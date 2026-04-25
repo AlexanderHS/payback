@@ -12,9 +12,11 @@ cookie_secret = "REPLACE_WITH_RANDOM_32_CHAR_STRING"
 cookie_secure = true
 cookie_name = "_payback_oauth2"
 
-# Use email file for access control. Leave email_domains = [] to require explicit entries.
-email_domains = []
-authenticated_emails_file = "/etc/oauth2-proxy/allowed-emails.txt"
+# Allow any Google account to sign in. Per-user data isolation in the app
+# means a new user lands on their own empty dashboard.
+# To restrict instead, set email_domains = [] and uncomment authenticated_emails_file:
+email_domains = ["*"]
+# authenticated_emails_file = "/etc/oauth2-proxy/allowed-emails.txt"
 
 # Pass user identity to upstream
 set_xauthrequest = true

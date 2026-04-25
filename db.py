@@ -19,6 +19,24 @@ def get_db():
 VALID_STATUSES = ('active', 'done', 'dropped', 'archived')
 VALID_UNITS = ('once', 'pcm', 'py', 'hours', 'hours_pcm')
 
+# Per-user data caps. Generous to never bother an honest user; tight enough that
+# a single account can't exhaust storage on a 24GB VPS.
+MAX_PROJECTS_PER_USER = 1000
+MAX_LINE_ITEMS_PER_TYPE = 100
+TEXT_LIMITS = {
+    'name': 200,
+    'target': 5000,
+    'strategy': 5000,
+    'pros_cons': 5000,
+    'alternatives': 5000,
+    'notes': 10000,
+}
+LINE_ITEM_DESC_LIMIT = 500
+
+
+class ValidationError(ValueError):
+    """Raised when user input breaches caps. Caught by routes and surfaced as 400."""
+
 
 def init_db():
     conn = get_db()
@@ -70,6 +88,12 @@ def init_db():
             user_id TEXT PRIMARY KEY,
             hourly_rate REAL NOT NULL DEFAULT 0
         );
+
+        CREATE TABLE IF NOT EXISTS users (
+            email TEXT PRIMARY KEY,
+            first_seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            last_seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+        );
     """)
     cols = [r[1] for r in conn.execute("PRAGMA table_info(projects)").fetchall()]
     if 'status' not in cols:
@@ -105,6 +129,104 @@ def init_db():
 
 def _hash_key(key):
     return hashlib.sha256(key.encode()).hexdigest()
+
+
+def _check_caps(data):
+    """Raise ValidationError on cap breach. Called from create/update_project."""
+    for field, limit in TEXT_LIMITS.items():
+        val = data.get(field)
+        if isinstance(val, str) and len(val) > limit:
+            raise ValidationError(f"{field} exceeds maximum length of {limit} characters")
+    for kind in ('costs', 'benefits'):
+        items = data.get(kind)
+        if items is None:
+            continue
+        if not isinstance(items, list):
+            continue  # shape errors caught elsewhere
+        if len(items) > MAX_LINE_ITEMS_PER_TYPE:
+            raise ValidationError(f"{kind} exceeds maximum of {MAX_LINE_ITEMS_PER_TYPE} items")
+        for i, item in enumerate(items):
+            if not isinstance(item, dict):
+                continue
+            desc = item.get('description', '')
+            if isinstance(desc, str) and len(desc) > LINE_ITEM_DESC_LIMIT:
+                raise ValidationError(f"{kind}[{i}].description exceeds {LINE_ITEM_DESC_LIMIT} characters")
+
+
+def touch_user(email):
+    """Record that this email has used the app. Called per authenticated request."""
+    if not email or '@' not in email:
+        return
+    conn = get_db()
+    conn.execute(
+        """INSERT INTO users (email) VALUES (?)
+           ON CONFLICT(email) DO UPDATE SET last_seen_at = CURRENT_TIMESTAMP""",
+        (email,)
+    )
+    conn.commit()
+    conn.close()
+
+
+def get_analytics():
+    """Aggregate, privacy-preserving stats for the deploy admin. No PII."""
+    conn = get_db()
+    out = {'users': {}, 'projects': {'by_status': {}, 'distribution': {}},
+           'shares': {}, 'api_keys': {}, 'storage': {}, 'limits': {}}
+
+    # Users
+    out['users']['total'] = conn.execute("SELECT COUNT(*) FROM users").fetchone()[0]
+    for label, days in (('active_7d', 7), ('active_30d', 30)):
+        out['users'][label] = conn.execute(
+            f"SELECT COUNT(*) FROM users WHERE last_seen_at > datetime('now', '-{days} days')"
+        ).fetchone()[0]
+    for label, days in (('new_7d', 7), ('new_30d', 30)):
+        out['users'][label] = conn.execute(
+            f"SELECT COUNT(*) FROM users WHERE first_seen_at > datetime('now', '-{days} days')"
+        ).fetchone()[0]
+
+    # Projects: total + by status + distribution
+    out['projects']['total'] = conn.execute("SELECT COUNT(*) FROM projects").fetchone()[0]
+    for status in VALID_STATUSES:
+        out['projects']['by_status'][status] = conn.execute(
+            "SELECT COUNT(*) FROM projects WHERE status = ?", (status,)
+        ).fetchone()[0]
+    rows = conn.execute(
+        "SELECT user_id, COUNT(*) AS n FROM projects GROUP BY user_id"
+    ).fetchall()
+    counts = [r['n'] for r in rows]
+    bins = {'0_projects': 0, '1_to_10': 0, '11_to_100': 0, '101_to_1000': 0}
+    bins['0_projects'] = max(0, out['users']['total'] - len(counts))
+    for n in counts:
+        if n <= 10:
+            bins['1_to_10'] += 1
+        elif n <= 100:
+            bins['11_to_100'] += 1
+        else:
+            bins['101_to_1000'] += 1
+    out['projects']['distribution'] = bins
+    out['projects']['users_with_projects'] = len(counts)
+    out['projects']['max_per_user'] = max(counts) if counts else 0
+
+    # Shares + keys
+    out['shares']['total'] = conn.execute("SELECT COUNT(*) FROM shares").fetchone()[0]
+    out['api_keys']['total'] = conn.execute("SELECT COUNT(*) FROM api_keys").fetchone()[0]
+
+    # Storage
+    try:
+        out['storage']['db_size_bytes'] = os.stat(DB_PATH).st_size
+    except OSError:
+        out['storage']['db_size_bytes'] = None
+
+    # Limits — published in the response so consumers know the caps without reading the source
+    out['limits'] = {
+        'max_projects_per_user': MAX_PROJECTS_PER_USER,
+        'max_line_items_per_type': MAX_LINE_ITEMS_PER_TYPE,
+        'max_line_item_desc_chars': LINE_ITEM_DESC_LIMIT,
+        'text_limits': dict(TEXT_LIMITS),
+    }
+
+    conn.close()
+    return out
 
 
 def parse_amount(s):
@@ -234,8 +356,17 @@ def get_project(project_id):
 
 
 def create_project(user_id, data):
-    """Create a project with line items. Returns project id."""
+    """Create a project with line items. Returns project id.
+    Raises ValidationError on cap breach."""
+    _check_caps(data)
     conn = get_db()
+    n = conn.execute("SELECT COUNT(*) FROM projects WHERE user_id = ?", (user_id,)).fetchone()[0]
+    if n >= MAX_PROJECTS_PER_USER:
+        conn.close()
+        raise ValidationError(
+            f"You have reached the maximum of {MAX_PROJECTS_PER_USER} projects. "
+            "Archive or permanently delete some before adding more."
+        )
     cur = conn.execute(
         """INSERT INTO projects (user_id, name, target, strategy, pros_cons, alternatives, notes, pbp_override)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
@@ -265,7 +396,8 @@ def create_project(user_id, data):
 
 
 def update_project(project_id, data):
-    """Update a project and its line items."""
+    """Update a project and its line items. Raises ValidationError on cap breach."""
+    _check_caps(data)
     conn = get_db()
 
     fields = []
