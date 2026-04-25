@@ -7,7 +7,7 @@
 
     {% if new_key %}
     <div class="alert alert-success">
-        <strong>New key created.</strong> Copy it now - it won't be shown again.
+        <strong>New key created.</strong> Copy it now — keys are hashed at rest, so this is the only time you'll see it.
         <code class="key-display">{{ new_key }}</code>
     </div>
     {% endif %}
@@ -34,7 +34,7 @@
             {% for k in keys %}
             <tr>
                 <td>{{ k.label or 'default' }}</td>
-                <td><code>{{ k.key[:8] }}...{{ k.key[-4:] }}</code></td>
+                <td><code>{{ k.prefix }}…</code></td>
                 <td>{{ k.created_at }}</td>
                 <td>
                     <form method="POST" class="inline-form">

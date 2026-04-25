@@ -2,6 +2,7 @@ import sqlite3
 import os
 import re
 import secrets
+import hashlib
 
 DB_PATH = os.path.join(os.path.dirname(__file__), 'instance', 'payback.db')
 
@@ -59,7 +60,8 @@ def init_db():
         CREATE TABLE IF NOT EXISTS api_keys (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id TEXT NOT NULL,
-            key TEXT NOT NULL UNIQUE,
+            key_hash TEXT NOT NULL UNIQUE,
+            prefix TEXT NOT NULL,
             label TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
@@ -75,8 +77,34 @@ def init_db():
     if 'letter' in cols:
         conn.execute("ALTER TABLE projects DROP COLUMN letter")
 
+    # Migrate api_keys: hash plaintext keys at rest.
+    # SQLite can't DROP a UNIQUE-indexed column, so rebuild the table.
+    api_cols = [r[1] for r in conn.execute("PRAGMA table_info(api_keys)").fetchall()]
+    if 'key' in api_cols:
+        conn.execute("""
+            CREATE TABLE api_keys_new (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id TEXT NOT NULL,
+                key_hash TEXT NOT NULL UNIQUE,
+                prefix TEXT NOT NULL,
+                label TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        for r in conn.execute("SELECT id, user_id, key, label, created_at FROM api_keys").fetchall():
+            conn.execute(
+                "INSERT INTO api_keys_new (id, user_id, key_hash, prefix, label, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+                (r['id'], r['user_id'], hashlib.sha256(r['key'].encode()).hexdigest(), r['key'][:16], r['label'], r['created_at'])
+            )
+        conn.execute("DROP TABLE api_keys")
+        conn.execute("ALTER TABLE api_keys_new RENAME TO api_keys")
+
     conn.commit()
     conn.close()
+
+
+def _hash_key(key):
+    return hashlib.sha256(key.encode()).hexdigest()
 
 
 def parse_amount(s):
@@ -299,12 +327,12 @@ def hard_delete_project(project_id):
 
 
 def create_api_key(user_id, label=None):
-    """Generate a new API key for a user. Returns the key string."""
+    """Generate a new API key for a user. Returns the plaintext key — only time it is exposed."""
     key = f"payback_{secrets.token_urlsafe(32)}"
     conn = get_db()
     conn.execute(
-        "INSERT INTO api_keys (user_id, key, label) VALUES (?, ?, ?)",
-        (user_id, key, label)
+        "INSERT INTO api_keys (user_id, key_hash, prefix, label) VALUES (?, ?, ?, ?)",
+        (user_id, _hash_key(key), key[:16], label)
     )
     conn.commit()
     conn.close()
@@ -312,19 +340,21 @@ def create_api_key(user_id, label=None):
 
 
 def get_api_keys(user_id):
-    """List API keys for a user (masked)."""
+    """List API keys for a user. Only the prefix is ever returned — the full key cannot be recovered."""
     conn = get_db()
     rows = conn.execute(
-        "SELECT id, label, key, created_at FROM api_keys WHERE user_id = ?", (user_id,)
+        "SELECT id, label, prefix, created_at FROM api_keys WHERE user_id = ?", (user_id,)
     ).fetchall()
     conn.close()
     return [dict(r) for r in rows]
 
 
 def verify_api_key(key):
-    """Look up an API key. Returns user_id or None."""
+    """Look up an API key by its hash. Returns user_id or None."""
     conn = get_db()
-    row = conn.execute("SELECT user_id FROM api_keys WHERE key = ?", (key,)).fetchone()
+    row = conn.execute(
+        "SELECT user_id FROM api_keys WHERE key_hash = ?", (_hash_key(key),)
+    ).fetchone()
     conn.close()
     return row['user_id'] if row else None
 

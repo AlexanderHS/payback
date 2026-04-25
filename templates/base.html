@@ -12,13 +12,19 @@
         <div class="nav-inner">
             <a href="{{ url_for('dashboard') }}" class="nav-brand">Payback</a>
             <div class="nav-links">
+                {% if user and '@' in user %}
                 <a href="{{ url_for('dashboard') }}">Dashboard</a>
                 <a href="{{ url_for('new_project') }}">+ New</a>
                 <a href="{{ url_for('sharing') }}">Sharing</a>
                 <a href="{{ url_for('settings') }}">Settings</a>
                 <a href="{{ url_for('manage_keys') }}">API Keys</a>
+                {% endif %}
                 <a href="{{ url_for('docs') }}">Docs</a>
+                {% if user and '@' in user %}
                 <span class="nav-user">{{ user }}</span>
+                {% else %}
+                <a href="{{ url_for('dashboard') }}">Sign in</a>
+                {% endif %}
             </div>
         </div>
     </nav>
