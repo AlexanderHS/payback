@@ -26,6 +26,7 @@
                 <a href="{{ url_for('docs') }}">Docs</a>
                 {% if user and '@' in user %}
                 <span class="nav-user">{{ user }}</span>
+                <a href="/oauth2/sign_out?rd=/" class="nav-signout" title="Sign out">Sign out</a>
                 {% else %}
                 <a href="{{ url_for('dashboard') }}">Sign in</a>
                 {% endif %}
