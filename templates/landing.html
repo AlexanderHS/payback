@@ -257,6 +257,22 @@
         </p>
       </section>
 
+      <section class="section selfhost-section">
+        <p class="section-marker">§ 06 — Or run it yourself</p>
+        <h2 class="section-headline-small">Don't want to trust us with the data? Don't.</h2>
+        <p class="privacy-prose">
+          The whole stack is one Flask app, one SQLite file, and an oauth2-proxy
+          sidecar — about 1,400 lines of Python in a 192MB container. A small
+          business or a privacy-conscious individual can run their own instance
+          in an afternoon: bring your own Google OAuth credentials and a domain,
+          <code>docker compose up -d</code>, and the data stays on infrastructure
+          you control end-to-end.
+        </p>
+        <p class="privacy-prose">
+          <a href="https://github.com/AlexanderHS/payback#run-it" target="_blank" rel="noopener" class="more">Setup steps in the README →</a>
+        </p>
+      </section>
+
       <section class="section final-cta">
         <h2 class="final-headline">Start your list.</h2>
         <a href="/dashboard" class="google-signin large" aria-label="Sign in with Google">

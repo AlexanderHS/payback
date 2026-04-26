@@ -83,6 +83,15 @@
     <li>Treating the site as a hobby project that should leave no fingerprint on your life beyond what you explicitly put into it.</li>
     <li>Keeping admin tools minimal — the <code>/api/analytics</code> endpoint, for example, returns aggregate counts and storage sizes only, never project content. See <code>get_analytics()</code> in <code>db.py</code>.</li>
   </ul>
+  <p>
+    If that operational assurance isn't enough — for example, if you're a
+    business that needs the data physically on your own infrastructure —
+    <a href="https://github.com/AlexanderHS/payback#run-it" target="_blank" rel="noopener">run your own instance</a>.
+    The stack is small (one Flask container plus an oauth2-proxy sidecar,
+    ~1,400 lines of Python). Bring your own Google OAuth credentials and a
+    domain; the README has the docker-compose setup. We don't see anything
+    you do with it.
+  </p>
 
   <h2>API keys and AI agents</h2>
   <p>
