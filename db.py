@@ -51,7 +51,6 @@ def init_db():
             pros_cons TEXT,
             alternatives TEXT,
             notes TEXT,
-            pbp_override REAL,
             status TEXT NOT NULL DEFAULT 'active',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -100,6 +99,11 @@ def init_db():
         conn.execute("ALTER TABLE projects ADD COLUMN status TEXT NOT NULL DEFAULT 'active'")
     if 'letter' in cols:
         conn.execute("ALTER TABLE projects DROP COLUMN letter")
+    if 'pbp_override' in cols:
+        # Removed in favour of always auto-calculating PBP — the manual
+        # override was niche, confused users, and didn't add much. SQLite
+        # 3.35+ supports DROP COLUMN; the VPS has it.
+        conn.execute("ALTER TABLE projects DROP COLUMN pbp_override")
 
     # Migrate api_keys: hash plaintext keys at rest.
     # SQLite can't DROP a UNIQUE-indexed column, so rebuild the table.
@@ -286,10 +290,7 @@ def calculate_pbp(costs, benefits, hourly_rate=0):
 
 def _hydrate_project(p, hourly_rate):
     """Compute pbp_months and summary fields on a project dict (mutates)."""
-    if p['pbp_override'] is not None:
-        p['pbp_months'] = p['pbp_override']
-    else:
-        p['pbp_months'] = calculate_pbp(p['costs'], p['benefits'], hourly_rate)
+    p['pbp_months'] = calculate_pbp(p['costs'], p['benefits'], hourly_rate)
 
     cu, cm, cuh, cmh = _summarize(p['costs'], hourly_rate)
     bu, bm, buh, bmh = _summarize(p['benefits'], hourly_rate)
@@ -368,11 +369,11 @@ def create_project(user_id, data):
             "Archive or permanently delete some before adding more."
         )
     cur = conn.execute(
-        """INSERT INTO projects (user_id, name, target, strategy, pros_cons, alternatives, notes, pbp_override)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+        """INSERT INTO projects (user_id, name, target, strategy, pros_cons, alternatives, notes)
+           VALUES (?, ?, ?, ?, ?, ?, ?)""",
         (user_id, data['name'], data.get('target'),
          data.get('strategy'), data.get('pros_cons'), data.get('alternatives'),
-         data.get('notes'), data.get('pbp_override'))
+         data.get('notes'))
     )
     project_id = cur.lastrowid
 
@@ -402,7 +403,7 @@ def update_project(project_id, data):
 
     fields = []
     values = []
-    for key in ('name', 'target', 'strategy', 'pros_cons', 'alternatives', 'notes', 'pbp_override', 'status'):
+    for key in ('name', 'target', 'strategy', 'pros_cons', 'alternatives', 'notes', 'status'):
         if key in data:
             fields.append(f"{key} = ?")
             values.append(data[key])

@@ -476,12 +476,6 @@ def parse_form(form):
         'notes': form.get('notes', '').strip() or None,
     }
 
-    pbp_override = form.get('pbp_override', '').strip()
-    try:
-        data['pbp_override'] = float(pbp_override) if pbp_override else None
-    except ValueError:
-        data['pbp_override'] = None
-
     data['costs'] = []
     data['benefits'] = []
 
@@ -546,11 +540,6 @@ def _validate_project_payload(data, require_name=False):
             return "name is required"
     if 'status' in data and data['status'] not in VALID_STATUSES:
         return f"status must be one of {list(VALID_STATUSES)}"
-    if 'pbp_override' in data and data['pbp_override'] is not None:
-        try:
-            float(data['pbp_override'])
-        except (ValueError, TypeError):
-            return "pbp_override must be numeric or null"
     if 'costs' in data:
         err = _validate_items(data['costs'], 'costs')
         if err:
