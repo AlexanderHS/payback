@@ -227,8 +227,12 @@
                 <button type="submit" class="btn btn-danger btn-small">Archive</button>
             </form>
             {% else %}
+            {# Demo-seed projects (matching one of the worked-example chip
+               titles) skip the type-the-name confirmation — archiving was
+               already a deliberate two-step, no need to make tidying up
+               an exploratory new-user account harder than it has to be. #}
             <form method="POST" action="{{ url_for('purge_project_route', project_id=p.id) }}" class="inline-form"
-                  onsubmit='return prompt("Permanent delete. Type the project name exactly to confirm:\n\n" + {{ p.name|tojson }}) === {{ p.name|tojson }};'>
+                  {% if p.name not in demo_seed_names %}onsubmit='return prompt("Permanent delete. Type the project name exactly to confirm:\n\n" + {{ p.name|tojson }}) === {{ p.name|tojson }};'{% endif %}>
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button type="submit" class="btn btn-danger btn-small">Delete forever</button>
             </form>

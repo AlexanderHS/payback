@@ -161,12 +161,18 @@ def dashboard():
     shared_from = get_shares_received(user_id)
     viewable = [user_id] + shared_from
 
+    # Names of the worked-example seed projects from project_templates.py.
+    # Used by dashboard.html to relax the type-to-confirm friction on
+    # "Delete forever" — for known demo seeds, a single click is enough.
+    demo_seed_names = {t['name'] for t in PROJECT_TEMPLATES.values()}
+
     return render_template('dashboard.html', projects=projects, user=user_id,
                            view_as=view_as, readonly=readonly, viewable=viewable,
                            current_status=status, counts=counts,
                            hourly_rate=get_hourly_rate(view_as),
                            hourly_rate_set=has_hourly_rate_set(view_as),
-                           default_hourly_rate=DEFAULT_HOURLY_RATE)
+                           default_hourly_rate=DEFAULT_HOURLY_RATE,
+                           demo_seed_names=demo_seed_names)
 
 
 @app.route('/new', methods=['GET', 'POST'])
