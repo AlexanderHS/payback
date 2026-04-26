@@ -21,7 +21,7 @@
                 entirely (you'll still see hours displayed on cards).
             </p>
             <div class="form-group">
-                <label for="hourly_rate">Hourly rate (AUD)</label>
+                <label for="hourly_rate">Hourly rate</label>
                 <input type="number" id="hourly_rate" name="hourly_rate" step="1" min="0"
                        value="{{ hourly_rate|int if hourly_rate_set else '' }}"
                        placeholder="e.g. {{ default_hourly_rate|int }}">

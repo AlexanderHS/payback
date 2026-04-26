@@ -793,6 +793,12 @@ input:focus, textarea:focus, select:focus {
     transform: translateY(-1px);
     outline: none;
 }
+.prompt-chips-meta {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    font-style: italic;
+    margin: -1rem 0 1.5rem;
+}
 .welcome-or {
     color: var(--text-muted);
     font-size: 0.85rem;
@@ -869,6 +875,21 @@ input:focus, textarea:focus, select:focus {
 .hint-banner a { color: var(--primary); font-weight: 500; text-decoration: underline; text-underline-offset: 2px; }
 .hint-banner a:hover { color: #6db98a; }
 .hint-banner .num { font-family: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace; }
+/* Inline form embedded in flowing text — let the button-as-link blend. */
+.hint-banner-inline-form { display: inline; margin: 0; padding: 0; }
+.hint-banner-link-btn {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    color: var(--primary);
+    font-family: inherit;
+    font-size: inherit;
+    font-weight: 500;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+.hint-banner-link-btn:hover { color: #6db98a; }
 
 .field-meta {
     font-size: 0.8rem;

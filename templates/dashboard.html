@@ -27,8 +27,14 @@
 <div class="hint-banner">
     <strong>Heads up:</strong> we're costing your time at the default
     <span class="num">${{ default_hourly_rate|int }}/hr</span> — this is what hours-based costs and benefits get multiplied by.
-    <a href="{{ url_for('settings') }}">Set your own rate</a>
-    so the math reflects your actual time cost.
+    <a href="{{ url_for('settings') }}">Set your own rate</a>, or
+    <form method="POST" action="{{ url_for('settings') }}" class="hint-banner-inline-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="hourly_rate" value="{{ default_hourly_rate|int }}">
+        <input type="hidden" name="next" value="dashboard">
+        <button type="submit" class="hint-banner-link-btn">accept this value</button>
+    </form>
+    and we'll stop bothering you.
 </div>
 {% endif %}
 
@@ -52,11 +58,12 @@
         </p>
         <p class="welcome-suggest">Try one of these to get going:</p>
         <div class="prompt-chips">
-            <a class="prompt-chip" href="{{ url_for('new_project', name='Should I buy a car?') }}">Should I buy a car?</a>
-            <a class="prompt-chip" href="{{ url_for('new_project', name='Should I take up a new hobby?') }}">Should I take up a new hobby?</a>
-            <a class="prompt-chip" href="{{ url_for('new_project', name='Should I quit my job?') }}">Should I quit my job?</a>
-            <a class="prompt-chip" href="{{ url_for('new_project', name='Should I start a vegetable garden?') }}">Should I start a vegetable garden?</a>
+            <a class="prompt-chip" href="{{ url_for('new_project', template='car') }}">Should I buy a car?</a>
+            <a class="prompt-chip" href="{{ url_for('new_project', template='hobby') }}">Should I take up a new hobby?</a>
+            <a class="prompt-chip" href="{{ url_for('new_project', template='job') }}">Should I quit my job?</a>
+            <a class="prompt-chip" href="{{ url_for('new_project', template='garden') }}">Should I start a vegetable garden?</a>
         </div>
+        <p class="prompt-chips-meta">— each chip opens the form pre-filled with a worked example you can edit —</p>
         <div class="welcome-or">— or —</div>
         <a href="{{ url_for('new_project') }}" class="btn btn-primary btn-large">+ Add a project</a>
         <p class="welcome-meta">

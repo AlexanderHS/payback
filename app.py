@@ -18,6 +18,7 @@ from db import (
     touch_user, get_analytics, ValidationError,
     VALID_STATUSES, VALID_UNITS,
 )
+from project_templates import PROJECT_TEMPLATES
 
 app = Flask(__name__)
 app.jinja_env.globals['format_amount'] = format_amount
@@ -178,10 +179,18 @@ def new_project():
             return redirect(url_for('dashboard'))
         except ValidationError as e:
             return render_template('form.html', project=data, user=user_id, error=str(e))
-    # Optional ?name= prefill (from empty-state prompt chips on the dashboard).
-    # Capped to the same 200-char limit the form enforces, just in case.
-    prefill_name = (request.args.get('name') or '').strip()[:200]
-    project = {'name': prefill_name} if prefill_name else None
+    # Empty-state prompt chips on the dashboard deep-link here with a
+    # template slug; load the worked-example dict so the form opens
+    # already populated. Falls through to a legacy ?name= prefill (kept
+    # for backward compat) and finally to a blank form.
+    template_slug = (request.args.get('template') or '').strip()
+    if template_slug in PROJECT_TEMPLATES:
+        # Copy so accidental edits to the template dict in this request
+        # don't leak into future requests.
+        project = dict(PROJECT_TEMPLATES[template_slug])
+    else:
+        prefill_name = (request.args.get('name') or '').strip()[:200]
+        project = {'name': prefill_name} if prefill_name else None
     return render_template('form.html', project=project, user=user_id, error=None)
 
 
@@ -285,6 +294,11 @@ def settings():
                 saved = True
             except ValueError:
                 pass
+        # Accept-default action on the dashboard banner posts here with
+        # next=dashboard. Send them straight back rather than dumping
+        # them on /settings just to confirm a value they didn't type.
+        if saved and request.form.get('next') == 'dashboard':
+            return redirect(url_for('dashboard'))
     return render_template('settings.html', user=user_id,
                            hourly_rate=get_hourly_rate(user_id),
                            hourly_rate_set=has_hourly_rate_set(user_id),
