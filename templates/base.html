@@ -17,23 +17,25 @@
             {% endif %}
             <div class="nav-links">
                 {% if user and '@' in user %}
-                <a href="{{ url_for('dashboard') }}">Dashboard</a>
-                <a href="{{ url_for('new_project') }}">+ New</a>
-                <a href="{{ url_for('sharing') }}">Sharing</a>
-                <a href="{{ url_for('settings') }}">Settings</a>
-                <a href="{{ url_for('manage_keys') }}">API Keys</a>
-                {% endif %}
-                <a href="{{ url_for('docs') }}">Docs</a>
-                {% if user and '@' in user %}
                 <div class="user-menu">
-                    <button type="button" class="user-menu-trigger" aria-haspopup="menu" aria-expanded="false">
-                        <span class="user-menu-email">{{ user }}</span>
+                    <button type="button" class="user-menu-trigger" aria-haspopup="menu" aria-expanded="false" aria-label="Account menu">
+                        <span class="user-menu-avatar" aria-hidden="true">{{ user[0]|upper }}</span>
+                        <span class="user-menu-email-inline">{{ user }}</span>
+                        <span class="user-menu-chevron" aria-hidden="true"></span>
                     </button>
                     <div class="user-menu-popover" role="menu">
-                        <a href="/oauth2/sign_out?rd=/" class="user-menu-item" role="menuitem">Sign out</a>
+                        <div class="user-menu-header" title="{{ user }}">{{ user }}</div>
+                        <a href="{{ url_for('new_project') }}" class="user-menu-item user-menu-item-primary" role="menuitem">+ New project</a>
+                        <a href="{{ url_for('sharing') }}" class="user-menu-item" role="menuitem">Sharing</a>
+                        <a href="{{ url_for('settings') }}" class="user-menu-item" role="menuitem">Settings</a>
+                        <a href="{{ url_for('manage_keys') }}" class="user-menu-item" role="menuitem">API Keys</a>
+                        <a href="{{ url_for('docs') }}" class="user-menu-item" role="menuitem">Docs</a>
+                        <hr class="user-menu-divider">
+                        <a href="/oauth2/sign_out?rd=/" class="user-menu-item user-menu-item-signout" role="menuitem">Sign out</a>
                     </div>
                 </div>
                 {% else %}
+                <a href="{{ url_for('docs') }}">Docs</a>
                 <a href="{{ url_for('dashboard') }}">Sign in</a>
                 {% endif %}
             </div>
