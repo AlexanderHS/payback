@@ -147,6 +147,25 @@ body {
     box-shadow: 0 14px 36px rgba(0, 0, 0, 0.5);
     z-index: 200;
 }
+/* Invisible bridge across the 0.5rem gap between trigger and popover.
+   Without this, moving the mouse from trigger to popover crosses dead
+   territory (neither element hovered) and the popover hides mid-transit.
+   The pseudo-element is a child of the popover, so hovering it counts as
+   hovering both the popover and the .user-menu ancestor — keeping the
+   :hover-driven open state alive.
+   Extended ~6rem past the popover's left edge to cover the case where
+   a long email makes the trigger wider than the popover; without that
+   extension, a straight-down mouse path from the left half of the
+   trigger would miss the bridge. The strip is transparent and lives in
+   the navbar's bottom padding, so it doesn't block any UI. */
+.user-menu-popover::before {
+    content: "";
+    position: absolute;
+    top: -0.5rem;
+    left: -6rem;
+    right: 0;
+    height: 0.5rem;
+}
 /* Hover-to-open only on devices that actually have a fine pointer
    (mouse/trackpad). Touch falls through to click-toggle. */
 @media (hover: hover) and (pointer: fine) {
