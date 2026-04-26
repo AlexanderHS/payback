@@ -25,8 +25,14 @@
                 {% endif %}
                 <a href="{{ url_for('docs') }}">Docs</a>
                 {% if user and '@' in user %}
-                <span class="nav-user">{{ user }}</span>
-                <a href="/oauth2/sign_out?rd=/" class="nav-signout" title="Sign out">Sign out</a>
+                <div class="user-menu">
+                    <button type="button" class="user-menu-trigger" aria-haspopup="menu" aria-expanded="false">
+                        <span class="user-menu-email">{{ user }}</span>
+                    </button>
+                    <div class="user-menu-popover" role="menu">
+                        <a href="/oauth2/sign_out?rd=/" class="user-menu-item" role="menuitem">Sign out</a>
+                    </div>
+                </div>
                 {% else %}
                 <a href="{{ url_for('dashboard') }}">Sign in</a>
                 {% endif %}
@@ -36,5 +42,32 @@
     <div class="container">
         {% block content %}{% endblock %}
     </div>
+    <script>
+    // Click-to-toggle for the user menu (works on touch and keyboard).
+    // CSS handles hover-to-open on devices that have a real pointer.
+    (function () {
+        document.querySelectorAll('.user-menu').forEach(function (menu) {
+            var trigger = menu.querySelector('.user-menu-trigger');
+            if (!trigger) return;
+            trigger.addEventListener('click', function (e) {
+                e.stopPropagation();
+                var open = menu.classList.toggle('open');
+                trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
+            });
+            document.addEventListener('click', function (e) {
+                if (!menu.contains(e.target)) {
+                    menu.classList.remove('open');
+                    trigger.setAttribute('aria-expanded', 'false');
+                }
+            });
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape') {
+                    menu.classList.remove('open');
+                    trigger.setAttribute('aria-expanded', 'false');
+                }
+            });
+        });
+    })();
+    </script>
 </body>
 </html>
