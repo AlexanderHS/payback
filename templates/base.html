@@ -10,7 +10,11 @@
 <body>
     <nav class="navbar">
         <div class="nav-inner">
+            {% if user and '@' in user %}
             <a href="{{ url_for('dashboard') }}" class="nav-brand">Payback</a>
+            {% else %}
+            <a href="{{ url_for('landing') }}" class="nav-brand">Payback</a>
+            {% endif %}
             <div class="nav-links">
                 {% if user and '@' in user %}
                 <a href="{{ url_for('dashboard') }}">Dashboard</a>

@@ -119,9 +119,27 @@ def analytics_auth_required(f):
     return decorated
 
 
-# --- Web routes ---
+# --- Public routes (oauth2-proxy is configured to skip auth on these) ---
 
 @app.route('/')
+def landing():
+    """Public marketing landing page. Logged-in visitors are redirected to
+    /dashboard client-side via a small fetch against /oauth2/auth — see
+    landing.html. We can't detect auth server-side here because oauth2-proxy's
+    skip_auth_routes bypasses header injection for this path."""
+    return render_template('landing.html')
+
+
+@app.route('/privacy')
+def privacy():
+    """Public privacy page. Honest, operational — see also /docs."""
+    return render_template('privacy.html')
+
+
+# --- Web routes (require oauth2-proxy auth in prod; fall back to 'dev' user
+#     when running `python app.py` directly without the proxy) ---
+
+@app.route('/dashboard')
 def dashboard():
     user_id = get_user()
     view_as = request.args.get('view_as', user_id)

@@ -28,6 +28,12 @@ skip_provider_button = true
 # Silence noisy logs
 silence_ping_logging = true
 
-# Bypass oauth2-proxy auth for /api/* (Flask handles Bearer-token auth itself)
-# and /docs (public read-only reference; LLM agents need to read it pre-auth).
-skip_auth_routes = ["^/api/", "^/docs$"]
+# Bypass oauth2-proxy auth for:
+#   /              public marketing landing page (logged-in users redirect to /dashboard via JS)
+#   /privacy       public privacy page
+#   /static/       CSS, fonts, etc. (the landing page references these unauthenticated)
+#   /oauth2/       oauth2-proxy's own endpoints, including /oauth2/auth used by the
+#                  landing-page JS to detect already-signed-in visitors
+#   /api/*         Flask handles Bearer-token auth itself
+#   /docs          public read-only reference; LLM agents need to read it pre-auth.
+skip_auth_routes = ["^/$", "^/privacy$", "^/static/", "^/api/", "^/docs$"]

@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block title_extra %} — Privacy{% endblock %}
+{% block content %}
+<style>
+.privacy-page { max-width: 680px; margin: 0 auto; padding: 1rem 0 4rem; }
+.privacy-page h1 {
+  font-size: 2rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: var(--text);
+}
+.privacy-page .lede {
+  color: var(--text-muted);
+  font-size: 1rem;
+  margin-bottom: 2.5rem;
+  font-style: italic;
+}
+.privacy-page h2 {
+  font-size: 1.15rem;
+  font-weight: 600;
+  margin-top: 2.5rem;
+  margin-bottom: 0.75rem;
+  color: var(--text);
+  letter-spacing: -0.005em;
+}
+.privacy-page p, .privacy-page li {
+  font-size: 0.95rem;
+  line-height: 1.65;
+  color: var(--text);
+  margin-bottom: 0.85rem;
+}
+.privacy-page ul { margin-left: 1.25rem; margin-bottom: 1rem; }
+.privacy-page li { margin-bottom: 0.4rem; }
+.privacy-page a { color: var(--primary); }
+.privacy-page a:hover { color: #6db98a; }
+.privacy-page strong { color: var(--text); font-weight: 600; }
+.privacy-page .meta {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  margin-top: 3rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border);
+}
+</style>
+
+<article class="privacy-page">
+  <h1>Privacy</h1>
+  <p class="lede">
+    Plain English. Honest about what we can and can't see. The whole codebase is on
+    <a href="https://github.com/AlexanderHS/payback" target="_blank" rel="noopener">GitHub</a>;
+    verify any of this for yourself.
+  </p>
+
+  <h2>What we store</h2>
+  <ul>
+    <li>Your Google email address — it's your account ID.</li>
+    <li>Everything you type into your projects (name, target, strategy, costs, benefits, notes, all of it).</li>
+    <li>The hashed form of any API keys you create. The plaintext key is shown to you once at creation and never stored.</li>
+    <li>The emails of users you've shared with, so we can let them view your projects.</li>
+    <li>Server logs (request paths, response codes, timestamps, IP) — kept for a few weeks, used only for debugging.</li>
+  </ul>
+
+  <h2>What we don't store</h2>
+  <ul>
+    <li>Passwords. Google handles authentication; we never see one.</li>
+    <li>Third-party tracking, analytics, or advertising cookies. There are no scripts on this site beyond the app itself.</li>
+    <li>Plaintext API keys. (Hashed at rest; verify via <code>db.py</code>.)</li>
+  </ul>
+
+  <h2>Who can see your data</h2>
+  <ul>
+    <li><strong>You</strong>, when signed in.</li>
+    <li><strong>Anyone you've explicitly shared with</strong>, via the Sharing page. Read-only, one-way, revocable any time.</li>
+    <li>
+      <strong>The site administrator</strong> (currently the project author) has shell access to the server and, in principle, can read the SQLite database. We don't have client-side encryption, so this is a real capability — not a theoretical one. We're being honest about that because the alternative would be to make a cryptographic claim we can't actually keep while also supporting the AI-agent API workflow this is built around.
+    </li>
+  </ul>
+  <p>
+    Operationally, the admin commits to:
+  </p>
+  <ul>
+    <li>Not querying user project content except for technical debugging (e.g. you reported a problem you want fixed) or to comply with a legal order.</li>
+    <li>Treating the site as a hobby project that should leave no fingerprint on your life beyond what you explicitly put into it.</li>
+    <li>Keeping admin tools minimal — the <code>/api/analytics</code> endpoint, for example, returns aggregate counts and storage sizes only, never project content. See <code>get_analytics()</code> in <code>db.py</code>.</li>
+  </ul>
+
+  <h2>API keys and AI agents</h2>
+  <p>
+    If you create an API key and give it to an AI agent or third-party tool, that key has full read and write access to your projects. The agent's host (OpenAI, Anthropic, whichever) will see whatever you let the agent send and receive on your behalf, and may retain it under their own policies. Treat an API key like a password.
+  </p>
+
+  <h2>Sharing</h2>
+  <p>
+    When you share with someone, we record their email. They'll see your projects the next time they sign in to Payback with that Google account. Sharing is read-only and you can revoke any time from the Sharing page.
+  </p>
+
+  <h2>Deletion</h2>
+  <p>
+    Projects: archive, then permanently delete from the Archived tab. Account: open a <a href="https://github.com/AlexanderHS/payback/issues" target="_blank" rel="noopener">GitHub issue</a> or contact the author through the address in the repo's commit history, and we'll wipe your row and any shares pointing at it.
+  </p>
+
+  <h2>Security</h2>
+  <ul>
+    <li>HTTPS everywhere (terminated at the reverse proxy).</li>
+    <li>API keys hashed (SHA-256) at rest.</li>
+    <li>CSRF tokens on all state-changing web requests.</li>
+    <li>API rate limiting per key.</li>
+    <li>Per-user data caps to prevent runaway storage abuse.</li>
+  </ul>
+
+  <h2>Changes to this page</h2>
+  <p>
+    This file lives in the public repo at <code>templates/privacy.html</code>. Every change is in <code>git log</code>.
+  </p>
+
+  <p class="meta">
+    Last reviewed: see this file's git history. If anything here is unclear, open an issue on GitHub.
+  </p>
+</article>
+{% endblock %}
