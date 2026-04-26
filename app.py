@@ -14,7 +14,7 @@ from db import (
     delete_project, hard_delete_project, set_project_status, parse_amount, format_amount,
     create_api_key, get_api_keys, verify_api_key, delete_api_key,
     add_share, remove_share, get_shares_granted, get_shares_received, can_view,
-    get_hourly_rate, set_hourly_rate,
+    get_hourly_rate, set_hourly_rate, has_hourly_rate_set, DEFAULT_HOURLY_RATE,
     touch_user, get_analytics, ValidationError,
     VALID_STATUSES, VALID_UNITS,
 )
@@ -163,7 +163,9 @@ def dashboard():
     return render_template('dashboard.html', projects=projects, user=user_id,
                            view_as=view_as, readonly=readonly, viewable=viewable,
                            current_status=status, counts=counts,
-                           hourly_rate=get_hourly_rate(view_as))
+                           hourly_rate=get_hourly_rate(view_as),
+                           hourly_rate_set=has_hourly_rate_set(view_as),
+                           default_hourly_rate=DEFAULT_HOURLY_RATE)
 
 
 @app.route('/new', methods=['GET', 'POST'])
@@ -267,16 +269,23 @@ def settings():
     saved = False
     if request.method == 'POST':
         rate_str = request.form.get('hourly_rate', '').strip()
-        try:
-            rate = float(rate_str) if rate_str else 0.0
-            if rate < 0:
-                rate = 0.0
-            set_hourly_rate(user_id, rate)
-            saved = True
-        except ValueError:
-            pass
+        # Empty submission = "no change"; we don't want to upsert a row,
+        # because the absence of a row is what flags the user as never-set
+        # and triggers the dashboard nudge banner.
+        if rate_str:
+            try:
+                rate = float(rate_str)
+                if rate < 0:
+                    rate = 0.0
+                set_hourly_rate(user_id, rate)
+                saved = True
+            except ValueError:
+                pass
     return render_template('settings.html', user=user_id,
-                           hourly_rate=get_hourly_rate(user_id), saved=saved)
+                           hourly_rate=get_hourly_rate(user_id),
+                           hourly_rate_set=has_hourly_rate_set(user_id),
+                           default_hourly_rate=DEFAULT_HOURLY_RATE,
+                           saved=saved)
 
 
 @app.route('/keys', methods=['GET', 'POST'])

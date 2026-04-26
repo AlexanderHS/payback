@@ -16,14 +16,18 @@
                 Your time cost in dollars per hour. Used to convert <code>hours</code> and <code>hours per month</code> line
                 items into dollar costs and benefits. Set to your <em>marginal earn rate</em> &mdash; the rate at which you'd
                 genuinely take on one more hour of paid work right now &mdash; not your gross salary divided by 2,000 and not
-                an aspirational consulting rate. Leave at <code>0</code> to ignore time-based items in payback math (you'll
-                still see hours displayed on cards).
+                an aspirational consulting rate. If you've never saved a value, hours are costed at the
+                default of <code>${{ default_hourly_rate|int }}/hr</code>; save <code>0</code> here to ignore time-based items
+                entirely (you'll still see hours displayed on cards).
             </p>
             <div class="form-group">
                 <label for="hourly_rate">Hourly rate (AUD)</label>
                 <input type="number" id="hourly_rate" name="hourly_rate" step="1" min="0"
-                       value="{{ hourly_rate|int if hourly_rate else '' }}"
-                       placeholder="e.g. 80">
+                       value="{{ hourly_rate|int if hourly_rate_set else '' }}"
+                       placeholder="e.g. {{ default_hourly_rate|int }}">
+                {% if not hourly_rate_set %}
+                <p class="field-meta">Currently using the default of ${{ default_hourly_rate|int }}/hr.</p>
+                {% endif %}
             </div>
         </fieldset>
 

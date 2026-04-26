@@ -618,3 +618,25 @@ input:focus, textarea:focus, select:focus {
     border-radius: 4px;
     margin-bottom: 1rem;
 }
+
+.hint-banner {
+    background: rgba(76, 149, 108, 0.08);
+    color: var(--text);
+    border-left: 3px solid var(--primary);
+    padding: 0.7rem 1rem;
+    border-radius: 4px;
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+.hint-banner strong { color: var(--text); font-weight: 600; }
+.hint-banner a { color: var(--primary); font-weight: 500; text-decoration: underline; text-underline-offset: 2px; }
+.hint-banner a:hover { color: #6db98a; }
+.hint-banner .num { font-family: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace; }
+
+.field-meta {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-top: 0.4rem;
+    font-style: italic;
+}

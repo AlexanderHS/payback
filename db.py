@@ -551,19 +551,38 @@ def can_view(viewer_id, owner_id):
     return row is not None
 
 
+# Used when a user has never visited /settings, so hours-based line items
+# still convert to dollars (rather than silently zeroing). Users who set
+# their own rate (including an explicit 0) override this.
+DEFAULT_HOURLY_RATE = 80.0
+
+
 def _get_hourly_rate(conn, user_id):
     row = conn.execute(
         "SELECT hourly_rate FROM user_settings WHERE user_id = ?", (user_id,)
     ).fetchone()
-    return row['hourly_rate'] if row else 0.0
+    return row['hourly_rate'] if row else DEFAULT_HOURLY_RATE
 
 
 def get_hourly_rate(user_id):
-    """Return the user's hourly rate (0 if unset)."""
+    """Return the user's hourly rate. Falls back to DEFAULT_HOURLY_RATE
+    when the user has never saved a setting."""
     conn = get_db()
     rate = _get_hourly_rate(conn, user_id)
     conn.close()
     return rate
+
+
+def has_hourly_rate_set(user_id):
+    """True if the user has explicitly saved an hourly rate (any value,
+    including 0). Used by the dashboard to decide whether to nudge them
+    toward /settings."""
+    conn = get_db()
+    row = conn.execute(
+        "SELECT 1 FROM user_settings WHERE user_id = ?", (user_id,)
+    ).fetchone()
+    conn.close()
+    return row is not None
 
 
 def set_hourly_rate(user_id, rate):

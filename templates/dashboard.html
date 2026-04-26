@@ -16,10 +16,21 @@
     </div>
     <span class="subtitle">
         Ranked by payback period
-        {% if hourly_rate and hourly_rate > 0 %} &middot; time costed at ${{ hourly_rate|int }}/hr{% endif %}
+        {% if hourly_rate and hourly_rate > 0 %}
+            &middot; time costed at ${{ hourly_rate|int }}/hr{% if not hourly_rate_set %} (default){% endif %}
+        {% endif %}
         {% if readonly %} &mdash; read-only view of {{ view_as }}'s projects{% endif %}
     </span>
 </div>
+
+{% if not readonly and not hourly_rate_set %}
+<div class="hint-banner">
+    <strong>Heads up:</strong> we're costing your time at the default
+    <span class="num">${{ default_hourly_rate|int }}/hr</span> — this is what hours-based costs and benefits get multiplied by.
+    <a href="{{ url_for('settings') }}">Set your own rate</a>
+    so the math reflects your actual time cost.
+</div>
+{% endif %}
 
 <div class="status-tabs">
     <a href="?status=active&view_as={{ view_as }}" class="tab {{ 'active' if current_status == 'active' }}">Active{% if counts.active %} <span class="tab-count">{{ counts.active }}</span>{% endif %}</a>
