@@ -178,7 +178,11 @@ def new_project():
             return redirect(url_for('dashboard'))
         except ValidationError as e:
             return render_template('form.html', project=data, user=user_id, error=str(e))
-    return render_template('form.html', project=None, user=user_id, error=None)
+    # Optional ?name= prefill (from empty-state prompt chips on the dashboard).
+    # Capped to the same 200-char limit the form enforces, just in case.
+    prefill_name = (request.args.get('name') or '').strip()[:200]
+    project = {'name': prefill_name} if prefill_name else None
+    return render_template('form.html', project=project, user=user_id, error=None)
 
 
 @app.route('/edit/<int:project_id>', methods=['GET', 'POST'])

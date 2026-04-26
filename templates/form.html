@@ -1,8 +1,12 @@
 {% extends "base.html" %}
-{% block title_extra %} - {{ "Edit" if project else "New" }} Project{% endblock %}
+{# project may be: a real DB row (edit mode — has 'id'), a prefill dict from
+   ?name= on /new (no id, name only), or None. Treat anything without an id
+   as a "new" form. #}
+{% set is_edit = project and project.get('id') %}
+{% block title_extra %} - {{ "Edit" if is_edit else "New" }} Project{% endblock %}
 {% block content %}
 <div class="form-container">
-    <h1>{{ "Edit" if project else "New" }} Project</h1>
+    <h1>{{ "Edit" if is_edit else "New" }} Project</h1>
 
     {% if error %}
     <p class="error-banner">{{ error }}</p>

@@ -39,15 +39,40 @@
     <a href="?status=archived&view_as={{ view_as }}" class="tab {{ 'active' if current_status == 'archived' }}">Archived{% if counts.archived %} <span class="tab-count">{{ counts.archived }}</span>{% endif %}</a>
 </div>
 
+{% set total_projects = counts.active + counts.done + counts.dropped + counts.archived %}
 {% if not projects %}
-<div class="empty-state">
-    {% if current_status == 'active' and not readonly %}
-    <p>No active projects.</p>
-    <a href="{{ url_for('new_project') }}" class="btn btn-primary">Add your first project</a>
+    {% if current_status == 'active' and not readonly and total_projects == 0 %}
+    <div class="empty-state-welcome">
+        <h2>Start your first project.</h2>
+        <p class="welcome-lede">
+            Pick a question you keep half-asking yourself. Adding it makes you
+            write down what you'd actually pay for the benefit, what it'd cost,
+            and what you'd be giving up — then ranks it against everything else
+            you're considering.
+        </p>
+        <p class="welcome-suggest">Try one of these to get going:</p>
+        <div class="prompt-chips">
+            <a class="prompt-chip" href="{{ url_for('new_project', name='Should I buy a car?') }}">Should I buy a car?</a>
+            <a class="prompt-chip" href="{{ url_for('new_project', name='Should I take up a new hobby?') }}">Should I take up a new hobby?</a>
+            <a class="prompt-chip" href="{{ url_for('new_project', name='Should I quit my job?') }}">Should I quit my job?</a>
+            <a class="prompt-chip" href="{{ url_for('new_project', name='Should I start a vegetable garden?') }}">Should I start a vegetable garden?</a>
+        </div>
+        <div class="welcome-or">— or —</div>
+        <a href="{{ url_for('new_project') }}" class="btn btn-primary btn-large">+ Add a project</a>
+        <p class="welcome-meta">
+            New here? <a href="{{ url_for('docs') }}">Read the docs</a> for worked examples and the WTP technique.
+        </p>
+    </div>
+    {% elif current_status == 'active' and not readonly %}
+    <div class="empty-state">
+        <p>No active projects.</p>
+        <a href="{{ url_for('new_project') }}" class="btn btn-primary">Add a project</a>
+    </div>
     {% else %}
-    <p>No {{ current_status }} projects.</p>
+    <div class="empty-state">
+        <p>No {{ current_status }} projects.</p>
+    </div>
     {% endif %}
-</div>
 {% endif %}
 
 <div class="card-grid">

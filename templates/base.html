@@ -25,6 +25,7 @@
                     </button>
                     <div class="user-menu-popover" role="menu">
                         <div class="user-menu-header" title="{{ user }}">{{ user }}</div>
+                        <a href="{{ url_for('dashboard') }}" class="user-menu-item" role="menuitem">Board</a>
                         <a href="{{ url_for('new_project') }}" class="user-menu-item user-menu-item-primary" role="menuitem">+ New project</a>
                         <a href="{{ url_for('sharing') }}" class="user-menu-item" role="menuitem">Sharing</a>
                         <a href="{{ url_for('settings') }}" class="user-menu-item" role="menuitem">Settings</a>
