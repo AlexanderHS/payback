@@ -1,8 +1,10 @@
 # Payback
 
-A project list where every entry is forced into a target, a strategy, an alternatives section, costs, and benefits, then ranked by payback period in months. The discipline of filling in those fields is most of the value; the ranking is the visible mechanism that makes you do it.
+A personal-life decision journal. Each entry is forced into a target, a strategy, an alternatives section, costs and benefits, then ranked by payback period in months. The discipline of filling in those fields is most of the value; the ranking is the visible mechanism that makes you do it.
 
-In-app docs at `/docs` — this README is just enough to run it.
+Live at https://payback.2ho.me. The root URL serves a public marketing landing page; the app proper is at `/dashboard` and requires Google sign-in.
+
+In-app framework reference at `/docs` (public). Contributor / AI-tooling onboarding lives in [`CLAUDE.md`](CLAUDE.md). This README is just enough to run it.
 
 ## What it is
 
@@ -10,7 +12,7 @@ In-app docs at `/docs` — this README is just enough to run it.
 - Costs/benefits in dollars (`once` / `pcm` / `py`) or hours (`hours` / `hours_pcm`, multiplied by your configured hourly rate)
 - Ranked by payback period: `upfront_cost / (monthly_benefit − monthly_recurring_cost)`
 - Statuses: `active` / `done` / `dropped` / `archived` (soft delete; permanent delete requires archived first)
-- Single-user via oauth2-proxy (Google by default); supports read-only sharing between users
+- Open Google sign-in by default; per-user data isolation; read-only sharing between users
 - REST API with per-user keys, mirrors the web UI
 
 ## Stack
@@ -40,7 +42,7 @@ For local development without auth, just run `python app.py` and the app falls b
 
 - `SERVICE_PORT` env var sets the Flask container's host-side port (default `8104`)
 - `instance/payback.db` is the SQLite database — back it up
-- Hourly rate is per-user, set on the in-app `/settings` page
+- Hourly rate is per-user (default `$80`, set on the in-app `/settings` page); time-based costs and benefits are multiplied by it
 - Per-user caps: max 1000 projects, ~5–10k chars per text field, 100 line items per type. See `db.py` for exact values.
 
 ## Analytics

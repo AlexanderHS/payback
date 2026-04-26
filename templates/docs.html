@@ -105,10 +105,10 @@
     <section id="hourly-rate">
         <h2>Hourly rate</h2>
         <p>
-            Set it once on the <a href="{{ url_for('settings') }}">Settings</a> page. Time-based line items
-            (<code>hours</code> and <code>hours_pcm</code> units) are multiplied by this rate before going into the
-            payback math. If the rate is <code>0</code>, time costs nothing in dollar terms but hours still appear on
-            cards.
+            Time-based line items (<code>hours</code> and <code>hours_pcm</code> units) are multiplied by this rate
+            before going into the payback math. The default is <code>$80/hr</code> &mdash; you can leave it there or
+            set your own on the <a href="{{ url_for('settings') }}">Settings</a> page. Saving an explicit
+            <code>0</code> makes time cost nothing in dollar terms (hours still show on cards).
         </p>
         <p>
             Use your <strong>marginal earn rate</strong> &mdash; the rate at which you'd genuinely take on one more
